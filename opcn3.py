@@ -87,6 +87,42 @@ class OPC(object):
         else:
             return False
 
+    def fan_off(self):
+        self._wait_for_command(OPC_CMD_WRITE_POWER_STATE)
+        self._send_command(OPC_N3_POWER_OPTION_FAN_POT << 1 | 0)
+
+    def fan_on(self):
+        self._wait_for_command(OPC_CMD_WRITE_POWER_STATE)
+        self._send_command(OPC_N3_POWER_OPTION_FAN_POT << 1 | 1)
+        sleep(1)
+
+    def laser_off(self):
+        self._wait_for_command(OPC_CMD_WRITE_POWER_STATE)
+        self._send_command(OPC_N3_POWER_OPTION_LASER_SWITCH << 1 | 0)
+
+    def laser_on(self):
+        self._wait_for_command(OPC_CMD_WRITE_POWER_STATE)
+        self._send_command(OPC_N3_POWER_OPTION_LASER_SWITCH << 1 | 1)
+
+    def on(self):
+        self.laser_on()
+        self.fan_on()
+
+    def off(self):
+        self.laser_off()
+        self.fan_off()
+
+    def power_status(self):
+        self._wait_for_command(OPC_CMD_READ_POWER_STATE)
+        keys = ["FanON", "LaserON", "FanDACVal", "LaserDACVal", "LaserSwitch", "GainToggle"]
+        r = dict()
+        for k in keys:
+            r[k] = self._send_command(OPC_CMD_READ_POWER_STATE)
+
+        return r
+
+
+
 if __name__ == "__main__":
     spi = SPI("/dev/ttyACM0")
     spi.mode = 1
@@ -99,9 +135,15 @@ if __name__ == "__main__":
     print("info:      {}".format(opc.info()))
     print("serial:    {}".format(opc.serial()))
     print("fwversion: {}.{}".format(*opc.fwversion()))
+    print("on")
+    opc.on()
+    pprint(opc.power_status())
+    print("off")
+    opc.off()
+    pprint(opc.power_status())
 
     # wait_for_command(OPC_CMD_WRITE_POWER_STATE)
-    # r = send_command(OPC_POWER_OPTION_FAN_POT << 1 | 1)
+    # r = send_command(OPC_N3_POWER_OPTION_FAN_POT << 1 | 1)
 
     # sleep(1)
 
@@ -116,7 +158,7 @@ if __name__ == "__main__":
     # pprint(r)
 
     # wait_for_command(OPC_CMD_WRITE_POWER_STATE)
-    # r = send_command(OPC_POWER_OPTION_FAN_POT << 1 | 0)
+    # r = send_command(OPC_N3_POWER_OPTION_FAN_POT << 1 | 0)
 
     # sleep(1)
 
