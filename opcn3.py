@@ -19,60 +19,91 @@ OPC_N3_POPT_LASER_POT    = 2
 OPC_N3_POPT_LASER_SWITCH = 3
 OPC_N3_POPT_GAIN_TOGGLE  = 4
 
-OPC_N3_POPT_MAP = [['FanON',               'uint8'],
-                           ['LaserON',             'uint8'],
-                           ['FanDACVal',           'uint8'],
-                           ['LaserDACVal',         'uint8'],
-                           ['LaserSwitch',         'uint8'],
-                           ['GainToggle',          'uint8']]
+OPC_N3_POPT_MAP =      [['FanON',               'uint8'],
+                        ['LaserON',             'uint8'],
+                        ['FanDACVal',           'uint8'],
+                        ['LaserDACVal',         'uint8'],
+                        ['LaserSwitch',         'uint8'],
+                        ['GainToggle',          'uint8']]
 
-OPC_N3_PM_MAP =           [['PM1',               'float32'],
-                           ['PM2.5',             'float32'],
-                           ['PM10',              'float32'],
-                           ['Checksum',           'uint16']]
+#[*[['Bin {}'.format(b), t] for b, t in zip(range(24), ["uint16"]*24)],
+OPC_N3_HISTOGRAM_MAP = [['Bin 0',              'uint16'],
+                        ['Bin 1',              'uint16'],
+                        ['Bin 2',              'uint16'],
+                        ['Bin 3',              'uint16'],
+                        ['Bin 4',              'uint16'],
+                        ['Bin 5',              'uint16'],
+                        ['Bin 6',              'uint16'],
+                        ['Bin 7',              'uint16'],
+                        ['Bin 8',              'uint16'],
+                        ['Bin 9',              'uint16'],
+                        ['Bin 10',             'uint16'],
+                        ['Bin 11',             'uint16'],
+                        ['Bin 12',             'uint16'],
+                        ['Bin 13',             'uint16'],
+                        ['Bin 14',             'uint16'],
+                        ['Bin 15',             'uint16'],
+                        ['Bin 16',             'uint16'],
+                        ['Bin 17',             'uint16'],
+                        ['Bin 18',             'uint16'],
+                        ['Bin 19',             'uint16'],
+                        ['Bin 20',             'uint16'],
+                        ['Bin 21',             'uint16'],
+                        ['Bin 22',             'uint16'],
+                        ['Bin 23',             'uint16'],
+                        ['Bin1 MToF',           'uint8'],
+                        ['Bin3 MToF',           'uint8'],
+                        ['Bin5 MToF',           'uint8'],
+                        ['Bin7 MToF',           'uint8'],
+                        ['Sampling Period' ,   'uint16'],
+                        ['SFR',                'uint16'],
+                        ['Temperature',        'uint16'],
+                        ['Relative humidity',  'uint16'],
+                        ['PM1',               'float32'],
+                        ['PM2.5',             'float32'],
+                        ['PM10',              'float32'],
+                        ['#RejectGlitch',      'uint16'],
+                        ['#RejectLongTOF',     'uint16'],
+                        ['#RejectRatio',       'uint16'],
+                        ['#RejectOutOfRange',  'uint16'],
+                        ['Fan rev count',      'uint16'],
+                        ['Laser status',       'uint16'],
+                        ['Checksum',           'uint16']]
 
-OPC_N3_HISTOGRAM_MAP    = [['Bin 0',              'uint16'],
-                           ['Bin 1',              'uint16'],
-                           ['Bin 2',              'uint16'],
-                           ['Bin 3',              'uint16'],
-                           ['Bin 4',              'uint16'],
-                           ['Bin 5',              'uint16'],
-                           ['Bin 6',              'uint16'],
-                           ['Bin 7',              'uint16'],
-                           ['Bin 8',              'uint16'],
-                           ['Bin 9',              'uint16'],
-                           ['Bin 10',             'uint16'],
-                           ['Bin 11',             'uint16'],
-                           ['Bin 12',             'uint16'],
-                           ['Bin 13',             'uint16'],
-                           ['Bin 14',             'uint16'],
-                           ['Bin 15',             'uint16'],
-                           ['Bin 16',             'uint16'],
-                           ['Bin 17',             'uint16'],
-                           ['Bin 18',             'uint16'],
-                           ['Bin 19',             'uint16'],
-                           ['Bin 20',             'uint16'],
-                           ['Bin 21',             'uint16'],
-                           ['Bin 22',             'uint16'],
-                           ['Bin 23',             'uint16'],
-                           ['Bin1 MToF',           'uint8'],
-                           ['Bin3 MToF',           'uint8'],
-                           ['Bin5 MToF',           'uint8'],
-                           ['Bin7 MToF',           'uint8'],
-                           ['Sampling Period' ,   'uint16'],
-                           ['SFR',                'uint16'],
-                           ['Temperature',        'uint16'],
-                           ['Relative humidity',  'uint16'],
-                           ['PM1',               'float32'],
-                           ['PM2.5',             'float32'],
-                           ['PM10',              'float32'],
-                           ['#RejectGlitch',      'uint16'],
-                           ['#RejectLongTOF',     'uint16'],
-                           ['#RejectRatio',       'uint16'],
-                           ['#RejectOutOfRange',  'uint16'],
-                           ['Fan rev count',      'uint16'],
-                           ['Laser status',       'uint16'],
-                           ['Checksum',           'uint16']]
+OPC_PM_MAP =           [['PM1',               'float32'],
+                        ['PM2.5',             'float32'],
+                        ['PM10',              'float32'],
+                        ['Checksum',           'uint16']]
+
+OPC_R1_HISTOGRAM_MAP = [['Bin 0',              'uint16'],
+                        ['Bin 1',              'uint16'],
+                        ['Bin 2',              'uint16'],
+                        ['Bin 3',              'uint16'],
+                        ['Bin 4',              'uint16'],
+                        ['Bin 5',              'uint16'],
+                        ['Bin 6',              'uint16'],
+                        ['Bin 7',              'uint16'],
+                        ['Bin 8',              'uint16'],
+                        ['Bin 9',              'uint16'],
+                        ['Bin 10',             'uint16'],
+                        ['Bin 11',             'uint16'],
+                        ['Bin 12',             'uint16'],
+                        ['Bin 13',             'uint16'],
+                        ['Bin 14',             'uint16'],
+                        ['Bin 15',             'uint16'],
+                        ['Bin1 MToF',           'uint8'],
+                        ['Bin3 MToF',           'uint8'],
+                        ['Bin5 MToF',           'uint8'],
+                        ['Bin7 MToF',           'uint8'],
+                        ['SFR',               'float32'],
+                        ['Temperature',        'uint16'],
+                        ['Relative humidity',  'uint16'],
+                        ['Sampling Period' ,  'float32'],
+                        ['#RejectGlitch',       'uint8'],
+                        ['PM1',               'float32'],
+                        ['PM2.5',             'float32'],
+                        ['PM10',              'float32'],
+                        ['Checksum',           'uint16']]
 
 
 def _unpack(t, x):
@@ -218,7 +249,7 @@ class OPC(object):
         for i in range(len(data)):
             crc ^= data[i]
             for bit in range(8):
-                if (crc & 1): # if bit 0 of crc is 1
+                if (crc & 1):
                     crc >>= 1
                     crc ^= poly
                 else:
@@ -253,15 +284,15 @@ class OPC(object):
         hist['SFR'] = hist['SFR'] / 100.
 
         ml_per_bin = hist['SFR'] * hist['Sampling Period']
-        for k, t in OPC_N3_HISTOGRAM_MAP:
+        for k in self.histogram_map.keys:
             if 'Bin ' in k:
                 hist[k] = hist[k] / ml_per_bin
 
-        for k, t in OPC_N3_HISTOGRAM_MAP:
+        for k in self.histogram_map.keys:
             if 'MToF' in k:
                 hist[k] = hist[k] / 3.
 
-        for k, t in OPC_N3_HISTOGRAM_MAP:
+        for k in self.histogram_map.keys:
             print('{}: {}'.format(k, hist[k]))
 
     def pm(self):
@@ -288,8 +319,8 @@ if __name__ == '__main__':
     sleep(3)
     for i in range(5):
         opc.histogram()
- #        sleep(1)
-#        pprint(opc.pm())
+        sleep(1)
+        pprint(opc.pm())
         sleep(1)
     print('off')
     opc.off()
