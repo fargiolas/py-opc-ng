@@ -14,12 +14,12 @@ OPC_CMD_READ_FW_VERSION     = 0x12
 OPC_CMD_READ_HISTOGRAM      = 0x30
 OPC_CMD_READ_PM             = 0x32
 OPC_CMD_CHECK_STATUS        = 0xCF
-OPC_N3_POWER_OPTION_FAN_POT      = 1
-OPC_N3_POWER_OPTION_LASER_POT    = 2
-OPC_N3_POWER_OPTION_LASER_SWITCH = 3
-OPC_N3_POWER_OPTION_GAIN_TOGGLE  = 4
+OPC_N3_POPT_FAN_POT      = 1
+OPC_N3_POPT_LASER_POT    = 2
+OPC_N3_POPT_LASER_SWITCH = 3
+OPC_N3_POPT_GAIN_TOGGLE  = 4
 
-OPC_N3_POWER_OPTION_MAP = [['FanON',               'uint8'],
+OPC_N3_POPT_MAP = [['FanON',               'uint8'],
                            ['LaserON',             'uint8'],
                            ['FanDACVal',           'uint8'],
                            ['LaserDACVal',         'uint8'],
@@ -75,7 +75,6 @@ OPC_N3_HISTOGRAM_MAP    = [['Bin 0',              'uint16'],
                            ['Checksum',           'uint16']]
 
 
-
 def _unpack(t, x):
     if t == 'uint8':
         return x[0]
@@ -127,7 +126,7 @@ class OPC(object):
     def __init__(self, spi):
         self.spi = spi
         self.histogram_map = _data_map(OPC_N3_HISTOGRAM_MAP)
-        self.popt_map = _data_map(OPC_N3_POWER_OPTION_MAP)
+        self.popt_map = _data_map(OPC_N3_POPT_MAP)
         self.pm_map = _data_map(OPC_N3_PM_MAP)
 
     def _send_command(self, cmd):
@@ -187,20 +186,20 @@ class OPC(object):
 
     def fan_off(self):
         self._wait_for_command(OPC_CMD_WRITE_POWER_STATE)
-        self._send_command(OPC_N3_POWER_OPTION_FAN_POT << 1 | 0)
+        self._send_command(OPC_N3_POPT_FAN_POT << 1 | 0)
 
     def fan_on(self):
         self._wait_for_command(OPC_CMD_WRITE_POWER_STATE)
-        self._send_command(OPC_N3_POWER_OPTION_FAN_POT << 1 | 1)
+        self._send_command(OPC_N3_POPT_FAN_POT << 1 | 1)
         sleep(1)
 
     def laser_off(self):
         self._wait_for_command(OPC_CMD_WRITE_POWER_STATE)
-        self._send_command(OPC_N3_POWER_OPTION_LASER_SWITCH << 1 | 0)
+        self._send_command(OPC_N3_POPT_LASER_SWITCH << 1 | 0)
 
     def laser_on(self):
         self._wait_for_command(OPC_CMD_WRITE_POWER_STATE)
-        self._send_command(OPC_N3_POWER_OPTION_LASER_SWITCH << 1 | 1)
+        self._send_command(OPC_N3_POPT_LASER_SWITCH << 1 | 1)
 
     def on(self):
         self.laser_on()
@@ -268,7 +267,7 @@ class OPC(object):
     def pm(self):
         return self._read_map(OPC_CMD_READ_PM, self.pm_map)
 
-    def power_status(self):
+    def power_state(self):
         return self._read_map(OPC_CMD_READ_POWER_STATE, self.popt_map)
 
 if __name__ == '__main__':
@@ -285,7 +284,7 @@ if __name__ == '__main__':
     print('fwversion: {}.{}'.format(*opc.fwversion()))
     print('on')
     opc.on()
-    pprint(opc.power_status())
+    pprint(opc.power_state())
     sleep(3)
     for i in range(5):
         opc.histogram()
@@ -294,34 +293,4 @@ if __name__ == '__main__':
         sleep(1)
     print('off')
     opc.off()
-    pprint(opc.power_status())
-
-    # wait_for_command(OPC_CMD_WRITE_POWER_STATE)
-    # r = send_command(OPC_N3_POWER_OPTION_FAN_POT << 1 | 1)
-
-    # sleep(1)
-
-    # print('dac and power status')
-
-    # wait_for_command(OPC_CMD_READ_POWER_STATE)
-    # keys = ['FanON', 'LaserON', 'FanDACVal', 'LaserDACVal', 'LaserSwitch', 'GainToggle']
-    # r = dict()
-    # for k in keys:
-    #     r[k] = send_command(OPC_CMD_READ_POWER_STATE)
-
-    # pprint(r)
-
-    # wait_for_command(OPC_CMD_WRITE_POWER_STATE)
-    # r = send_command(OPC_N3_POWER_OPTION_FAN_POT << 1 | 0)
-
-    # sleep(1)
-
-    # print('dac and power status')
-
-    # wait_for_command(OPC_CMD_READ_POWER_STATE)
-    # keys = ['FanON', 'LaserON', 'FanDACVal', 'LaserDACVal', 'LaserSwitch', 'GainToggle']
-    # r = dict()
-    # for k in keys:
-    #     r[k] = send_command(OPC_CMD_READ_POWER_STATE)
-
-    # pprint(r)
+    pprint(opc.power_state())
