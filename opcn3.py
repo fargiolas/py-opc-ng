@@ -19,79 +19,79 @@ OPC_N3_POWER_OPTION_LASER_POT    = 2
 OPC_N3_POWER_OPTION_LASER_SWITCH = 3
 OPC_N3_POWER_OPTION_GAIN_TOGGLE  = 4
 
-OPC_N3_POWER_OPTION_MAP = [['FanON',              'uchar'],
-                           ['LaserON',            'uchar'],
-                           ['FanDACVal',          'uchar'],
-                           ['LaserDACVal',        'uchar'],
-                           ['LaserSwitch',        'uchar'],
-                           ['GainToggle',         'uchar']]
+OPC_N3_POWER_OPTION_MAP = [['FanON',               'uint8'],
+                           ['LaserON',             'uint8'],
+                           ['FanDACVal',           'uint8'],
+                           ['LaserDACVal',         'uint8'],
+                           ['LaserSwitch',         'uint8'],
+                           ['GainToggle',          'uint8']]
 
-OPC_N3_PM_MAP =           [['PM1',                'float'],
-                           ['PM2.5',              'float'],
-                           ['PM10',               'float'],
-                           ['Checksum',          'ushort']]
+OPC_N3_PM_MAP =           [['PM1',               'float32'],
+                           ['PM2.5',             'float32'],
+                           ['PM10',              'float32'],
+                           ['Checksum',           'uint16']]
 
-OPC_N3_HISTOGRAM_MAP    = [['Bin 0',             'ushort'],
-                           ['Bin 1',             'ushort'],
-                           ['Bin 2',             'ushort'],
-                           ['Bin 3',             'ushort'],
-                           ['Bin 4',             'ushort'],
-                           ['Bin 5',             'ushort'],
-                           ['Bin 6',             'ushort'],
-                           ['Bin 7',             'ushort'],
-                           ['Bin 8',             'ushort'],
-                           ['Bin 9',             'ushort'],
-                           ['Bin 10',            'ushort'],
-                           ['Bin 11',            'ushort'],
-                           ['Bin 12',            'ushort'],
-                           ['Bin 13',            'ushort'],
-                           ['Bin 14',            'ushort'],
-                           ['Bin 15',            'ushort'],
-                           ['Bin 16',            'ushort'],
-                           ['Bin 17',            'ushort'],
-                           ['Bin 18',            'ushort'],
-                           ['Bin 19',            'ushort'],
-                           ['Bin 20',            'ushort'],
-                           ['Bin 21',            'ushort'],
-                           ['Bin 22',            'ushort'],
-                           ['Bin 23',            'ushort'],
-                           ['Bin1 MToF',          'uchar'],
-                           ['Bin3 MToF',          'uchar'],
-                           ['Bin5 MToF',          'uchar'],
-                           ['Bin7 MToF',          'uchar'],
-                           ['Sampling Period',   'ushort'],
-                           ['SFR',               'ushort'],
-                           ['Temperature',       'ushort'],
-                           ['Relative humidity', 'ushort'],
-                           ['PM1',                'float'],
-                           ['PM2.5',              'float'],
-                           ['PM10',               'float'],
-                           ['#RejectGlitch',     'ushort'],
-                           ['#RejectLongTOF',    'ushort'],
-                           ['#RejectRatio',      'ushort'],
-                           ['#RejectOutOfRange', 'ushort'],
-                           ['Fan rev count',     'ushort'],
-                           ['Laser status',      'ushort'],
-                           ['Checksum',          'ushort']]
+OPC_N3_HISTOGRAM_MAP    = [['Bin 0',              'uint16'],
+                           ['Bin 1',              'uint16'],
+                           ['Bin 2',              'uint16'],
+                           ['Bin 3',              'uint16'],
+                           ['Bin 4',              'uint16'],
+                           ['Bin 5',              'uint16'],
+                           ['Bin 6',              'uint16'],
+                           ['Bin 7',              'uint16'],
+                           ['Bin 8',              'uint16'],
+                           ['Bin 9',              'uint16'],
+                           ['Bin 10',             'uint16'],
+                           ['Bin 11',             'uint16'],
+                           ['Bin 12',             'uint16'],
+                           ['Bin 13',             'uint16'],
+                           ['Bin 14',             'uint16'],
+                           ['Bin 15',             'uint16'],
+                           ['Bin 16',             'uint16'],
+                           ['Bin 17',             'uint16'],
+                           ['Bin 18',             'uint16'],
+                           ['Bin 19',             'uint16'],
+                           ['Bin 20',             'uint16'],
+                           ['Bin 21',             'uint16'],
+                           ['Bin 22',             'uint16'],
+                           ['Bin 23',             'uint16'],
+                           ['Bin1 MToF',           'uint8'],
+                           ['Bin3 MToF',           'uint8'],
+                           ['Bin5 MToF',           'uint8'],
+                           ['Bin7 MToF',           'uint8'],
+                           ['Sampling Period' ,   'uint16'],
+                           ['SFR',                'uint16'],
+                           ['Temperature',        'uint16'],
+                           ['Relative humidity',  'uint16'],
+                           ['PM1',               'float32'],
+                           ['PM2.5',             'float32'],
+                           ['PM10',              'float32'],
+                           ['#RejectGlitch',      'uint16'],
+                           ['#RejectLongTOF',     'uint16'],
+                           ['#RejectRatio',       'uint16'],
+                           ['#RejectOutOfRange',  'uint16'],
+                           ['Fan rev count',      'uint16'],
+                           ['Laser status',       'uint16'],
+                           ['Checksum',           'uint16']]
 
 
 
 def _unpack(t, x):
-    if t == 'uchar':
+    if t == 'uint8':
         return x[0]
-    elif t == 'ushort':
+    elif t == 'uint16':
         return (x[1] << 8) | x[0]
-    elif t == 'float':
+    elif t == 'float32':
         return struct.unpack('f', struct.pack('4B', *x))[0]
     else:
         raise ValueError
 
 def _len(t):
-    if t == 'uchar':
+    if t == 'uint8':
         return 1
-    elif t == 'ushort':
+    elif t == 'uint16':
         return 2
-    elif t == 'float':
+    elif t == 'float32':
         return 4
     else:
         raise ValueError
