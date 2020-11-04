@@ -3,27 +3,6 @@ from usbiss.spi import SPI
 from time import sleep
 from pprint import pprint
 
-def _unpack(t, x):
-    if t == 'uchar':
-        return x[0]
-    elif t == 'ushort':
-        return (x[1] << 8) | x[0]
-    elif t == 'float':
-        return struct.unpack('f', struct.pack('4B', *x))[0]
-    else:
-        raise ValueError
-
-def _len(t):
-    if t == 'uchar':
-        return 1
-    elif t == 'ushort':
-        return 2
-    elif t == 'float':
-        return 4
-    else:
-        raise ValueError
-
-
 OPC_READY = 0xF3
 OPC_BUSY  = 0x31
 
@@ -96,20 +75,60 @@ OPC_N3_HISTOGRAM_MAP    = [['Bin 0',             'ushort'],
                            ['Checksum',          'ushort']]
 
 
-def _map_size(m):
+
+def _unpack(t, x):
+    if t == 'uchar':
+        return x[0]
+    elif t == 'ushort':
+        return (x[1] << 8) | x[0]
+    elif t == 'float':
+        return struct.unpack('f', struct.pack('4B', *x))[0]
+    else:
+        raise ValueError
+
+def _len(t):
+    if t == 'uchar':
+        return 1
+    elif t == 'ushort':
+        return 2
+    elif t == 'float':
+        return 4
+    else:
+        raise ValueError
+
+
+class _data_map(object):
+    def __init__(self, m):
+        self.data_map = m
+        self.size = self._map_size(self.data_map)
+        self.keys = self._keys()
+
+    def _map_size(self, m):
         l = 0
         for k, t in m:
             l += _len(t)
-
         return l
+
+    def _keys(self):
+        return [k for k, t in self.data_map]
+
+    def unpack(self, raw_bytes):
+        data = dict()
+        c = 0
+        for k, t in self.data_map:
+            l = _len(t)
+            data[k] = _unpack(t, raw_bytes[c:c+l])
+            c += l
+
+        return data
 
 
 class OPC(object):
     def __init__(self, spi):
         self.spi = spi
-        self.histogram_map_size = _map_size(OPC_N3_HISTOGRAM_MAP)
-        self.poweroption_map_size = _map_size(OPC_N3_POWER_OPTION_MAP)
-        self.pm_map_size = _map_size(OPC_N3_PM_MAP)
+        self.histogram_map = _data_map(OPC_N3_HISTOGRAM_MAP)
+        self.popt_map = _data_map(OPC_N3_POWER_OPTION_MAP)
+        self.pm_map = _data_map(OPC_N3_PM_MAP)
 
     def _send_command(self, cmd):
         r = self.spi.xfer([cmd])[0]
@@ -191,15 +210,6 @@ class OPC(object):
         self.laser_off()
         self.fan_off()
 
-    def power_status(self):
-        self._wait_for_command(OPC_CMD_READ_POWER_STATE)
-        keys = ['FanON', 'LaserON', 'FanDACVal', 'LaserDACVal', 'LaserSwitch', 'GainToggle']
-        r = dict()
-        for k in keys:
-            r[k] = self._send_command(OPC_CMD_READ_POWER_STATE)
-
-        return r
-
     def checksum(self, data):
         poly = 0xA001
         init_crc_val = 0xFFFF
@@ -217,28 +227,25 @@ class OPC(object):
 
         return crc
 
-    def histogram(self):
-        self._wait_for_command(OPC_CMD_READ_HISTOGRAM)
+    def _read_map(self, cmd, m):
+        self._wait_for_command(cmd)
         raw_bytes = []
-        for i in range(self.histogram_map_size):
-            raw_bytes += [self._send_command(OPC_CMD_READ_HISTOGRAM)]
-        print(raw_bytes)
+        for i in range(m.size):
+            raw_bytes += [self._send_command(cmd)]
 
-        hist = dict()
-        c = 0
-        for k, t in OPC_N3_HISTOGRAM_MAP:
-            l = _len(t)
-            raw = raw_bytes[c:c+l]
-            hist[k] = _unpack(t, raw)
-            c += l
+        data = m.unpack(raw_bytes)
 
-        if 'Checksum' in hist.keys():
+        if 'Checksum' in m.keys:
             crc = self.checksum(raw_bytes[:-2])
-            if hist['Checksum'] != crc:
-                print('WRONG CHECKSUM')
+            if data['Checksum'] != crc:
+                print('checksum error!')
                 return None
 
-        return self.histogram_post_process(hist)
+        return data
+
+    def histogram(self):
+        data = self._read_map(OPC_CMD_READ_HISTOGRAM, self.histogram_map)
+        return self.histogram_post_process(data)
 
     def histogram_post_process(self, hist):
         hist['Temperature'] = -45. + 175. * hist['Temperature'] / (float(1<<16) - 1.)
@@ -259,35 +266,10 @@ class OPC(object):
             print('{}: {}'.format(k, hist[k]))
 
     def pm(self):
-        self._wait_for_command(OPC_CMD_READ_PM)
-        raw_bytes = []
-        for i in range(self.pm_map_size):
-            raw_bytes += [self._send_command(OPC_CMD_READ_PM)]
-        print(raw_bytes)
+        return self._read_map(OPC_CMD_READ_PM, self.pm_map)
 
-        pm = dict()
-        c = 0
-        for k, t in OPC_N3_PM_MAP:
-            l = _len(t)
-            raw = raw_bytes[c:c+l]
-            pm[k] = _unpack(t, raw)
-            c += l
-
-        if 'Checksum' in pm.keys():
-            crc = self.checksum(raw_bytes[:-2])
-            if pm['Checksum'] != crc:
-                print('WRONG CHECKSUM')
-                return None
-
-        return pm
-    #     self._wait_for_command(OPC_CMD_READ_PM)
-    #     pma = self._read_float(OPC_CMD_READ_PM)
-    #     pmb = self._read_float(OPC_CMD_READ_PM)
-    #     pmc = self._read_float(OPC_CMD_READ_PM)
-    #     chksum = self._read_ushort(OPC_CMD_READ_PM)
-
-    #     print(pma, pmb, pmc, hex(chksum))
-
+    def power_status(self):
+        return self._read_map(OPC_CMD_READ_POWER_STATE, self.popt_map)
 
 if __name__ == '__main__':
     spi = SPI('/dev/ttyACM0')
@@ -307,8 +289,8 @@ if __name__ == '__main__':
     sleep(3)
     for i in range(5):
         opc.histogram()
-        sleep(1)
-        pprint(opc.pm())
+ #        sleep(1)
+#        pprint(opc.pm())
         sleep(1)
     print('off')
     opc.off()
