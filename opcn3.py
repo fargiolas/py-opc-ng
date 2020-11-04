@@ -70,10 +70,11 @@ OPC_N3_HISTOGRAM_MAP = [['Bin 0',              'uint16'],
                         ['Laser status',       'uint16'],
                         ['Checksum',           'uint16']]
 
-OPC_PM_MAP =           [['PM1',               'float32'],
+OPC_N3_PM_MAP =        [['PM1',               'float32'],
                         ['PM2.5',             'float32'],
                         ['PM10',              'float32'],
                         ['Checksum',           'uint16']]
+OPC_R1_PM_MAP = OPC_N3_PM_MAP
 
 OPC_R1_HISTOGRAM_MAP = [['Bin 0',              'uint16'],
                         ['Bin 1',              'uint16'],
@@ -156,9 +157,6 @@ class _data_map(object):
 class OPC(object):
     def __init__(self, spi):
         self.spi = spi
-        self.histogram_map = _data_map(OPC_N3_HISTOGRAM_MAP)
-        self.popt_map = _data_map(OPC_N3_POPT_MAP)
-        self.pm_map = _data_map(OPC_N3_PM_MAP)
 
     def _send_command(self, cmd):
         r = self.spi.xfer([cmd])[0]
@@ -215,31 +213,6 @@ class OPC(object):
         else:
             return False
 
-    def fan_off(self):
-        self._wait_for_command(OPC_CMD_WRITE_POWER_STATE)
-        self._send_command(OPC_N3_POPT_FAN_POT << 1 | 0)
-
-    def fan_on(self):
-        self._wait_for_command(OPC_CMD_WRITE_POWER_STATE)
-        self._send_command(OPC_N3_POPT_FAN_POT << 1 | 1)
-        sleep(1)
-
-    def laser_off(self):
-        self._wait_for_command(OPC_CMD_WRITE_POWER_STATE)
-        self._send_command(OPC_N3_POPT_LASER_SWITCH << 1 | 0)
-
-    def laser_on(self):
-        self._wait_for_command(OPC_CMD_WRITE_POWER_STATE)
-        self._send_command(OPC_N3_POPT_LASER_SWITCH << 1 | 1)
-
-    def on(self):
-        self.laser_on()
-        self.fan_on()
-
-    def off(self):
-        self.laser_off()
-        self.fan_off()
-
     def checksum(self, data):
         poly = 0xA001
         init_crc_val = 0xFFFF
@@ -277,6 +250,49 @@ class OPC(object):
         data = self._read_map(OPC_CMD_READ_HISTOGRAM, self.histogram_map)
         return self.histogram_post_process(data)
 
+    def pm(self):
+        return self._read_map(OPC_CMD_READ_PM, self.pm_map)
+
+    def power_state(self):
+        raise NotImplementedError
+
+
+class OPCN3(OPC):
+    def __init__(self):
+        super().__init__()
+
+        self.histogram_map = _data_map(OPC_N3_HISTOGRAM_MAP)
+        self.popt_map = _data_map(OPC_N3_POPT_MAP)
+        self.pm_map = _data_map(OPC_N3_PM_MAP)
+
+    def power_state(self):
+        return self._read_map(OPC_CMD_READ_POWER_STATE, self.popt_map)
+
+        def fan_off(self):
+        self._wait_for_command(OPC_CMD_WRITE_POWER_STATE)
+        self._send_command(OPC_N3_POPT_FAN_POT << 1 | 0)
+
+    def fan_on(self):
+        self._wait_for_command(OPC_CMD_WRITE_POWER_STATE)
+        self._send_command(OPC_N3_POPT_FAN_POT << 1 | 1)
+        sleep(1)
+
+    def laser_off(self):
+        self._wait_for_command(OPC_CMD_WRITE_POWER_STATE)
+        self._send_command(OPC_N3_POPT_LASER_SWITCH << 1 | 0)
+
+    def laser_on(self):
+        self._wait_for_command(OPC_CMD_WRITE_POWER_STATE)
+        self._send_command(OPC_N3_POPT_LASER_SWITCH << 1 | 1)
+
+    def on(self):
+        self.laser_on()
+        self.fan_on()
+
+    def off(self):
+        self.laser_off()
+        self.fan_off()
+
     def histogram_post_process(self, hist):
         hist['Temperature'] = -45. + 175. * hist['Temperature'] / (float(1<<16) - 1.)
         hist['Relative humidity'] = 100. * hist['Relative humidity'] / (float(1<<16) - 1.)
@@ -295,11 +311,23 @@ class OPC(object):
         for k in self.histogram_map.keys:
             print('{}: {}'.format(k, hist[k]))
 
-    def pm(self):
-        return self._read_map(OPC_CMD_READ_PM, self.pm_map)
+
+
+
+class OPCR1(OPC):
+    def __init__(self):
+        super().__init__()
+
+        self.histogram_map = _data_map(OPC_R1_HISTOGRAM_MAP)
+        self.pm_map = _data_map(OPC_R1_PM_MAP)
 
     def power_state(self):
         return self._read_map(OPC_CMD_READ_POWER_STATE, self.popt_map)
+
+    def histogram_post_process(self, hist):
+        return hist
+
+
 
 if __name__ == '__main__':
     spi = SPI('/dev/ttyACM0')
