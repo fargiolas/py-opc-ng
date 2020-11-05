@@ -26,6 +26,40 @@ OPC_N3_POPT_MAP =      [['FanON',               'uint8'],
                         ['LaserSwitch',         'uint8'],
                         ['GainToggle',          'uint8']]
 
+OPC_N2_POPT_MAP =      [['FanON',               'uint8'],
+                        ['LaserON',             'uint8'],
+                        ['FanDACVal',           'uint8'],
+                        ['LaserDACVal',         'uint8']]
+
+
+OPC_N2_HISTOGRAM_MAP = [['Bin 0',              'uint16'],
+                        ['Bin 1',              'uint16'],
+                        ['Bin 2',              'uint16'],
+                        ['Bin 3',              'uint16'],
+                        ['Bin 4',              'uint16'],
+                        ['Bin 5',              'uint16'],
+                        ['Bin 6',              'uint16'],
+                        ['Bin 7',              'uint16'],
+                        ['Bin 8',              'uint16'],
+                        ['Bin 9',              'uint16'],
+                        ['Bin 10',             'uint16'],
+                        ['Bin 11',             'uint16'],
+                        ['Bin 12',             'uint16'],
+                        ['Bin 13',             'uint16'],
+                        ['Bin 14',             'uint16'],
+                        ['Bin 15',             'uint16'],
+                        ['Bin1 MToF',           'uint8'],
+                        ['Bin3 MToF',           'uint8'],
+                        ['Bin5 MToF',           'uint8'],
+                        ['Bin7 MToF',           'uint8'],
+                        ['SFR',               'float32'],
+                        ['Temperature',        'uint32'],
+                        ['Sampling Period' ,  'float32'],
+                        ['Checksum',                'uint16'],
+                        ['PM1',               'float32'],
+                        ['PM2.5',             'float32'],
+                        ['PM10',              'float32']]
+
 #[*[['Bin {}'.format(b), t] for b, t in zip(range(24), ["uint16"]*24)],
 OPC_N3_HISTOGRAM_MAP = [['Bin 0',              'uint16'],
                         ['Bin 1',              'uint16'],
@@ -70,10 +104,15 @@ OPC_N3_HISTOGRAM_MAP = [['Bin 0',              'uint16'],
                         ['Laser status',       'uint16'],
                         ['Checksum',           'uint16']]
 
+OPC_N2_PM_MAP =        [['PM1',               'float32'],
+                        ['PM2.5',             'float32'],
+                        ['PM10',              'float32']]
+
 OPC_N3_PM_MAP =        [['PM1',               'float32'],
                         ['PM2.5',             'float32'],
                         ['PM10',              'float32'],
                         ['Checksum',           'uint16']]
+
 
 OPC_R1_PM_MAP = OPC_N3_PM_MAP
 
@@ -114,6 +153,11 @@ def _unpack(t, x):
         return x[0]
     elif t == 'uint16':
         return (x[1] << 8) | x[0]
+    elif t == 'uint32':
+        print([hex(a) for a in x])
+        r  = (x[3] << 24) | (x[2] << 16) | (x[1] << 8) | x[0]
+        print(r)
+        return r
     elif t == 'float32':
         return struct.unpack('f', struct.pack('4B', *x))[0]
     else:
@@ -124,6 +168,8 @@ def _len(t):
         return 1
     elif t == 'uint16':
         return 2
+    elif t == 'uint32':
+        return 4
     elif t == 'float32':
         return 4
     else:
@@ -163,7 +209,6 @@ class OPC(object):
     def _send_command(self, cmd):
         r = self.spi.xfer([cmd])[0]
         # print('cmd: 0x{:02X} r: 0x{:02X}'.format(cmd, r))
-        sleep(0.02)
         return r
 
     def _wait_for_command(self, cmd):
@@ -180,6 +225,7 @@ class OPC(object):
                 sleep(3)  # > 2s ( < 10s)
 
             r = self._send_command(cmd)
+            sleep(0.02)
 
             attempts = attempts + 1
 
@@ -235,14 +281,15 @@ class OPC(object):
         else:
             return False
 
-    def checksum(self, data):
+    def checksum(self, data, raw_bytes):
+        raw_bytes = raw_bytes[:-2]
         poly = 0xA001
         init_crc_val = 0xFFFF
 
         crc = init_crc_val
 
-        for i in range(len(data)):
-            crc ^= data[i]
+        for i in range(len(raw_bytes)):
+            crc ^= raw_bytes[i]
             for bit in range(8):
                 if (crc & 1):
                     crc >>= 1
@@ -261,7 +308,8 @@ class OPC(object):
         data = m.unpack(raw_bytes)
 
         if 'Checksum' in m.keys:
-            crc = self.checksum(raw_bytes[:-2])
+            crc = self.checksum(data, raw_bytes)
+            print(crc)
             if data['Checksum'] != crc:
                 print('checksum error!')
                 return None
@@ -351,6 +399,40 @@ class OPCR1(OPC):
         hist = self._convert_mtof(hist)
 
         return hist
+
+class OPCN2(OPC):
+    def __init__(self, spi):
+        super().__init__(spi)
+
+        self.histogram_map = _data_map(OPC_N2_HISTOGRAM_MAP)
+        self.popt_map = _data_map(OPC_N2_POPT_MAP)
+        self.pm_map = _data_map(OPC_N2_PM_MAP)
+
+    def on(self):
+        self._wait_for_command(OPC_CMD_WRITE_POWER_STATE)
+        self._send_command(0x00)
+
+    def off(self):
+        self._wait_for_command(OPC_CMD_WRITE_POWER_STATE)
+        self._send_command(0x01)
+
+    def power_state(self):
+        return self._read_map(OPC_CMD_READ_POWER_STATE, self.popt_map)
+
+    def checksum(self, data, raw_bytes):
+        bins = [data[k] for k in data.keys() if 'Bin ' in k]
+        print(bins)
+        import numpy as np
+        return np.sum(bins)
+
+    def histogram_post_process(self, hist):
+        # hist['Temperature'] = self._convert_temperature(hist['Temperature'])
+
+        hist = self._convert_hist_to_count_per_ml(hist)
+        hist = self._convert_mtof(hist)
+
+        return hist
+
 
 
 
