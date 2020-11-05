@@ -74,6 +74,7 @@ OPC_N3_PM_MAP =        [['PM1',               'float32'],
                         ['PM2.5',             'float32'],
                         ['PM10',              'float32'],
                         ['Checksum',           'uint16']]
+
 OPC_R1_PM_MAP = OPC_N3_PM_MAP
 
 OPC_R1_HISTOGRAM_MAP = [['Bin 0',              'uint16'],
@@ -101,6 +102,7 @@ OPC_R1_HISTOGRAM_MAP = [['Bin 0',              'uint16'],
                         ['Relative humidity',  'uint16'],
                         ['Sampling Period' ,  'float32'],
                         ['#RejectGlitch',       'uint8'],
+                        ['#RejectLongTOF',       'uint8'],
                         ['PM1',               'float32'],
                         ['PM2.5',             'float32'],
                         ['PM10',              'float32'],
@@ -258,8 +260,8 @@ class OPC(object):
 
 
 class OPCN3(OPC):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, spi):
+        super().__init__(spi)
 
         self.histogram_map = _data_map(OPC_N3_HISTOGRAM_MAP)
         self.popt_map = _data_map(OPC_N3_POPT_MAP)
@@ -268,7 +270,7 @@ class OPCN3(OPC):
     def power_state(self):
         return self._read_map(OPC_CMD_READ_POWER_STATE, self.popt_map)
 
-        def fan_off(self):
+    def fan_off(self):
         self._wait_for_command(OPC_CMD_WRITE_POWER_STATE)
         self._send_command(OPC_N3_POPT_FAN_POT << 1 | 0)
 
@@ -315,14 +317,19 @@ class OPCN3(OPC):
 
 
 class OPCR1(OPC):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, spi):
+        super().__init__(spi)
 
         self.histogram_map = _data_map(OPC_R1_HISTOGRAM_MAP)
         self.pm_map = _data_map(OPC_R1_PM_MAP)
 
-    def power_state(self):
-        return self._read_map(OPC_CMD_READ_POWER_STATE, self.popt_map)
+    def on(self):
+        self._wait_for_command(OPC_CMD_WRITE_POWER_STATE)
+        self._send_command(0x03)
+
+    def off(self):
+        self._wait_for_command(OPC_CMD_WRITE_POWER_STATE)
+        self._send_command(0x00)
 
     def histogram_post_process(self, hist):
         return hist
