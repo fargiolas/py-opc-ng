@@ -185,6 +185,12 @@ class OPC(object):
 
         return r
 
+    def _convert_temperature(self, x):
+        return -45. + 175. * x / (float(1<<16) - 1.)
+
+    def _convert_humidity(self, x):
+        return 100. * x / (float(1<<16) - 1.)
+
     def info(self):
         self._wait_for_command(OPC_CMD_READ_INFO_STRING)
         info = ''
@@ -296,8 +302,8 @@ class OPCN3(OPC):
         self.fan_off()
 
     def histogram_post_process(self, hist):
-        hist['Temperature'] = -45. + 175. * hist['Temperature'] / (float(1<<16) - 1.)
-        hist['Relative humidity'] = 100. * hist['Relative humidity'] / (float(1<<16) - 1.)
+        hist['Temperature'] = self._convert_temperature(hist['Temperature'])
+        hist['Relative humidity'] = self._convert_temperature(hist['Relative humidity'])
         hist['Sampling Period'] = hist['Sampling Period'] / 100.
         hist['SFR'] = hist['SFR'] / 100.
 
@@ -332,6 +338,9 @@ class OPCR1(OPC):
         self._send_command(0x00)
 
     def histogram_post_process(self, hist):
+        hist['Temperature'] = self._convert_temperature(hist['Temperature'])
+        hist['Relative humidity'] = self._convert_temperature(hist['Relative humidity'])
+
         return hist
 
 
