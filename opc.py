@@ -191,6 +191,20 @@ class OPC(object):
     def _convert_humidity(self, x):
         return 100. * x / (float(1<<16) - 1.)
 
+    def _convert_hist_to_count_per_ml(self, hist):
+        ml_per_period = hist['SFR'] * hist['Sampling Period']
+        for k in self.histogram_map.keys:
+            if 'Bin ' in k:
+                hist[k] = hist[k] / ml_per_period
+
+        return hist
+
+    def _convert_mtof(self, hist):
+        for k in self.histogram_map.keys:
+            if 'MToF' in k:
+                hist[k] = hist[k] / 3.
+        return hist
+
     def info(self):
         self._wait_for_command(OPC_CMD_READ_INFO_STRING)
         info = ''
@@ -254,9 +268,12 @@ class OPC(object):
 
         return data
 
-    def histogram(self):
+    def histogram(self, raw=False):
         data = self._read_map(OPC_CMD_READ_HISTOGRAM, self.histogram_map)
-        return self.histogram_post_process(data)
+        if raw:
+            return data
+        else:
+            return self.histogram_post_process(data)
 
     def pm(self):
         return self._read_map(OPC_CMD_READ_PM, self.pm_map)
@@ -304,23 +321,12 @@ class OPCN3(OPC):
     def histogram_post_process(self, hist):
         hist['Temperature'] = self._convert_temperature(hist['Temperature'])
         hist['Relative humidity'] = self._convert_temperature(hist['Relative humidity'])
+
         hist['Sampling Period'] = hist['Sampling Period'] / 100.
         hist['SFR'] = hist['SFR'] / 100.
 
-        ml_per_bin = hist['SFR'] * hist['Sampling Period']
-        for k in self.histogram_map.keys:
-            if 'Bin ' in k:
-                hist[k] = hist[k] / ml_per_bin
-
-        for k in self.histogram_map.keys:
-            if 'MToF' in k:
-                hist[k] = hist[k] / 3.
-
-        for k in self.histogram_map.keys:
-            print('{}: {}'.format(k, hist[k]))
-
-
-
+        hist = self._convert_hist_to_count_per_ml(hist)
+        hist = self._convert_mtof(hist)
 
 class OPCR1(OPC):
     def __init__(self, spi):
@@ -340,6 +346,9 @@ class OPCR1(OPC):
     def histogram_post_process(self, hist):
         hist['Temperature'] = self._convert_temperature(hist['Temperature'])
         hist['Relative humidity'] = self._convert_temperature(hist['Relative humidity'])
+
+        hist = self._convert_hist_to_count_per_ml(hist)
+        hist = self._convert_mtof(hist)
 
         return hist
 
