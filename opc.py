@@ -13,7 +13,9 @@ OPC_CMD_READ_SERIAL_STRING  = 0x10
 OPC_CMD_READ_FW_VERSION     = 0x12
 OPC_CMD_READ_HISTOGRAM      = 0x30
 OPC_CMD_READ_PM             = 0x32
+OPC_CMD_READ_CONFIG         = 0x3C
 OPC_CMD_CHECK_STATUS        = 0xCF
+OPC_CMD_RESET               = 0x06
 OPC_N3_POPT_FAN_POT      = 1
 OPC_N3_POPT_LASER_POT    = 2
 OPC_N3_POPT_LASER_SWITCH = 3
@@ -218,7 +220,7 @@ class OPC(object):
             if attempts >= 20:
                 if attempts >= 20+5:
                     print('something wrong, aborting')
-                    return None
+                    return False
 
                 print('opc not responding, let\'s wait...')
                 sleep(3)  # > 2s ( < 10s)
@@ -228,7 +230,7 @@ class OPC(object):
 
             attempts = attempts + 1
 
-        return r
+        return True
 
     def _convert_temperature(self, x):
         return -45. + 175. * x / (float(1<<16) - 1.)
@@ -275,11 +277,7 @@ class OPC(object):
         return major, minor
 
     def ping(self):
-        r = self._wait_for_command(OPC_CMD_CHECK_STATUS)
-        if r == OPC_READY:
-            return True
-        else:
-            return False
+        return self._wait_for_command(OPC_CMD_CHECK_STATUS)
 
     def checksum(self, data, raw_bytes):
         raw_bytes = raw_bytes[:-2]
@@ -325,10 +323,6 @@ class OPC(object):
     def pm(self):
         return self._read_map(OPC_CMD_READ_PM, self.pm_map)
 
-    def power_state(self):
-        raise NotImplementedError
-
-
 class OPCN3(OPC):
     def __init__(self, spi):
         super().__init__(spi)
@@ -365,6 +359,9 @@ class OPCN3(OPC):
         self.laser_off()
         self.fan_off()
 
+    def reset(self):
+        return self._wait_for_command(OPC_CMD_RESET)
+
     def histogram_post_process(self, hist):
         hist['Temperature'] = self._convert_temperature(hist['Temperature'])
         hist['Relative humidity'] = self._convert_temperature(hist['Relative humidity'])
@@ -391,6 +388,9 @@ class OPCR1(OPC):
     def off(self):
         self._wait_for_command(OPC_CMD_WRITE_POWER_STATE)
         self._send_command(0x00)
+
+    def reset(self):
+        return self._wait_for_command(OPC_CMD_RESET)
 
     def histogram_post_process(self, hist):
         hist['Temperature'] = self._convert_temperature(hist['Temperature'])
@@ -435,9 +435,6 @@ class OPCN2(OPC):
         hist = self._convert_mtof(hist)
 
         return hist
-
-
-
 
 if __name__ == '__main__':
     spi = SPI('/dev/ttyACM0')
