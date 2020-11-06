@@ -238,9 +238,10 @@ class OPC(object):
 
     def _convert_hist_to_count_per_ml(self, hist):
         ml_per_period = hist['SFR'] * hist['Sampling Period']
-        for k in self.histogram_map.keys:
-            if 'Bin ' in k:
-                hist[k] = hist[k] / ml_per_period
+        if ml_per_period > 0:
+            for k in self.histogram_map.keys:
+                if 'Bin ' in k:
+                    hist[k] = hist[k] / ml_per_period
 
         return hist
 
@@ -316,7 +317,7 @@ class OPC(object):
 
     def histogram(self, raw=False):
         data = self._read_map(OPC_CMD_READ_HISTOGRAM, self.histogram_map)
-        if raw or data is None:
+        if raw or (data is None):
             return data
         else:
             return self.histogram_post_process(data)
@@ -373,6 +374,8 @@ class OPCN3(OPC):
 
         hist = self._convert_hist_to_count_per_ml(hist)
         hist = self._convert_mtof(hist)
+
+        return hist
 
 class OPCR1(OPC):
     def __init__(self, spi):
