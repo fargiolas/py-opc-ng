@@ -141,7 +141,7 @@ OPC_R1_HISTOGRAM_MAP = [['Bin 0',              'uint16'],
                         ['Relative humidity',  'uint16'],
                         ['Sampling Period' ,  'float32'],
                         ['#RejectGlitch',       'uint8'],
-                        ['#RejectLongTOF',       'uint8'],
+                        ['#RejectLongTOF',      'uint8'],
                         ['PM1',               'float32'],
                         ['PM2.5',             'float32'],
                         ['PM10',              'float32'],
@@ -154,9 +154,7 @@ def _unpack(t, x):
     elif t == 'uint16':
         return (x[1] << 8) | x[0]
     elif t == 'uint32':
-        print([hex(a) for a in x])
         r  = (x[3] << 24) | (x[2] << 16) | (x[1] << 8) | x[0]
-        print(r)
         return r
     elif t == 'float32':
         return struct.unpack('f', struct.pack('4B', *x))[0]
@@ -209,6 +207,7 @@ class OPC(object):
     def _send_command(self, cmd):
         r = self.spi.xfer([cmd])[0]
         # print('cmd: 0x{:02X} r: 0x{:02X}'.format(cmd, r))
+        sleep(10e-6)
         return r
 
     def _wait_for_command(self, cmd):
@@ -309,7 +308,6 @@ class OPC(object):
 
         if 'Checksum' in m.keys:
             crc = self.checksum(data, raw_bytes)
-            print(crc)
             if data['Checksum'] != crc:
                 print('checksum error!')
                 return None
@@ -318,7 +316,7 @@ class OPC(object):
 
     def histogram(self, raw=False):
         data = self._read_map(OPC_CMD_READ_HISTOGRAM, self.histogram_map)
-        if raw:
+        if raw or data is None:
             return data
         else:
             return self.histogram_post_process(data)
@@ -421,9 +419,11 @@ class OPCN2(OPC):
 
     def checksum(self, data, raw_bytes):
         bins = [data[k] for k in data.keys() if 'Bin ' in k]
-        print(bins)
-        import numpy as np
-        return np.sum(bins)
+        binsum = 0
+        for b in bins:
+            binsum += b
+
+        return binsum & 0xFFFF
 
     def histogram_post_process(self, hist):
         # hist['Temperature'] = self._convert_temperature(hist['Temperature'])
