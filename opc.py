@@ -1,7 +1,5 @@
 import struct
-from usbiss.spi import SPI
 from time import sleep
-from pprint import pprint
 
 OPC_READY = 0xF3
 OPC_BUSY  = 0x31
@@ -435,28 +433,3 @@ class OPCN2(OPC):
         hist = self._convert_mtof(hist)
 
         return hist
-
-if __name__ == '__main__':
-    spi = SPI('/dev/ttyACM0')
-    spi.mode = 1
-    spi_max_speed_hz = 500000
-
-    opc = OPC(spi)
-
-    print('ping?')
-    print('pong!' if opc.ping() else 'timeout!')
-    print('info:      {}'.format(opc.info()))
-    print('serial:    {}'.format(opc.serial()))
-    print('fwversion: {}.{}'.format(*opc.fwversion()))
-    print('on')
-    opc.on()
-    pprint(opc.power_state())
-    sleep(3)
-    for i in range(5):
-        opc.histogram()
-        sleep(1)
-        pprint(opc.pm())
-        sleep(1)
-    print('off')
-    opc.off()
-    pprint(opc.power_state())
