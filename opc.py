@@ -215,16 +215,30 @@ class OPC(object):
         attempts = 0
 
         while (r != OPC_READY):
-            if attempts >= 20:
-                if attempts >= 20+5:
-                    print('something wrong, aborting')
-                    return False
+            # The first returned byte should always be 0x31 (busy). Subsequent returned bytes will
+            # either be 0x31 (busy) or 0xF3 (ready) depending on the status of the OPC-N3. If
+            # another byte value is received by the SPI master at this stage, an error has occurred
+            # and communication should cease for > 2s to allow the OPC-N3 to realise the error and
+            # clear its buffered data. [Alphasense 072-0502]
+            if r != OPC_BUSY:
+                print('something wrong, received unexpected response: 0x{:02X}'.format(r))
+                print('waiting 5s for the device to settle')
+                sleep(5)
+                return False
 
-                print('opc not responding, let\'s wait...')
-                sleep(3)  # > 2s ( < 10s)
+            if attempts > 20:
+                # if this cycle has happened many times, e.g. 20, wait > 2s ( < 10s) for OPC's SPI
+                # buffer to reset [Alphasense 072-0503]
+                print('opc not responding, waiting 5s for the SPI buffer to reset')
+                sleep(5)
+
+            if attempts > 25:
+                # this is not described by Alphasense manuals but I've seen it happen with N3
+                print('this is taking too long, something wrong, aborting')
+                return False
 
             r = self._send_command(cmd)
-            sleep(0.02)
+            sleep(0.02)   # wait > 10 ms (< 100 ms)
 
             attempts = attempts + 1
 
