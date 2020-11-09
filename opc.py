@@ -19,7 +19,7 @@ OPC_N3_POPT_LASER_POT    = 2
 OPC_N3_POPT_LASER_SWITCH = 3
 OPC_N3_POPT_GAIN_TOGGLE  = 4
 
-OPC_N3_POPT_MAP =         [['FanON',               'uint8'],
+OPC_N3_POPT_STRUCT =         [['FanON',               'uint8'],
                            ['LaserON',             'uint8'],
                            ['FanDACVal',           'uint8'],
                            ['LaserDACVal',         'uint8'],
@@ -243,6 +243,31 @@ class OPC(object):
 
         return True
 
+    def _read_bytes(self, cmd, sz):
+        self._wait_for_command(cmd)
+        l = []
+        for i in range(sz):
+            l += [self._send_command(cmd)]
+
+        return l
+
+    def _write_bytes(self, cmd, l):
+        self._wait_for_command(cmd)
+        for c in l:
+            self._send_command(c)
+
+    def _read_struct(self, cmd, m):
+        raw_bytes = self._read_bytes(cmd, m.size)
+        data = m.unpack(raw_bytes)
+
+        if 'Checksum' in m.keys:
+            crc = self.checksum(data, raw_bytes)
+            if data['Checksum'] != crc:
+                print('checksum error!')
+                return None
+
+        return data
+
     def _convert_temperature(self, x):
         return -45. + 175. * x / (float(1<<16) - 1.)
 
@@ -265,26 +290,15 @@ class OPC(object):
         return hist
 
     def info(self):
-        self._wait_for_command(OPC_CMD_READ_INFO_STRING)
-        info = ''
-        for i in range(60):
-            info += chr(self._send_command(OPC_CMD_READ_INFO_STRING))
-
-        return info
+        l = self._read_bytes(OPC_CMD_READ_INFO_STRING, 60)
+        return ''.join([chr(c) for c in l])
 
     def serial(self):
-        self._wait_for_command(OPC_CMD_READ_SERIAL_STRING)
-        info = ''
-        for i in range(60):
-            info += chr(self._send_command(OPC_CMD_READ_SERIAL_STRING))
-
-        return info
+        l = self._read_bytes(OPC_CMD_READ_SERIAL_STRING, 60)
+        return ''.join([chr(c) for c in l])
 
     def fwversion(self):
-        self._wait_for_command(OPC_CMD_READ_FW_VERSION)
-        major = self._send_command(OPC_CMD_READ_FW_VERSION)
-        minor = self._send_command(OPC_CMD_READ_FW_VERSION)
-
+        major, minor = self._read_bytes(OPC_CMD_READ_FW_VERSION, 2)
         return major, minor
 
     def ping(self):
@@ -308,22 +322,6 @@ class OPC(object):
 
         return crc
 
-    def _read_struct(self, cmd, m):
-        self._wait_for_command(cmd)
-        raw_bytes = []
-        for i in range(m.size):
-            raw_bytes += [self._send_command(cmd)]
-
-        data = m.unpack(raw_bytes)
-
-        if 'Checksum' in m.keys:
-            crc = self.checksum(data, raw_bytes)
-            if data['Checksum'] != crc:
-                print('checksum error!')
-                return None
-
-        return data
-
     def histogram(self, raw=False):
         data = self._read_struct(OPC_CMD_READ_HISTOGRAM, self.histogram_struct)
         if raw or (data is None):
@@ -346,21 +344,16 @@ class OPCN3(OPC):
         return self._read_struct(OPC_CMD_READ_POWER_STATE, self.popt_struct)
 
     def fan_off(self):
-        self._wait_for_command(OPC_CMD_WRITE_POWER_STATE)
-        self._send_command(OPC_N3_POPT_FAN_POT << 1 | 0)
+        self._write_bytes(OPC_CMD_WRITE_POWER_STATE, [OPC_N3_POPT_FAN_POT << 1 | 0])
 
     def fan_on(self):
-        self._wait_for_command(OPC_CMD_WRITE_POWER_STATE)
-        self._send_command(OPC_N3_POPT_FAN_POT << 1 | 1)
-        sleep(1)
+        self._write_bytes(OPC_CMD_WRITE_POWER_STATE, [OPC_N3_POPT_FAN_POT << 1 | 1])
 
     def laser_off(self):
-        self._wait_for_command(OPC_CMD_WRITE_POWER_STATE)
-        self._send_command(OPC_N3_POPT_LASER_SWITCH << 1 | 0)
+        self._write_bytes(OPC_CMD_WRITE_POWER_STATE, [OPC_N3_POPT_LASER_SWITCH << 1 | 0])
 
     def laser_on(self):
-        self._wait_for_command(OPC_CMD_WRITE_POWER_STATE)
-        self._send_command(OPC_N3_POPT_LASER_SWITCH << 1 | 1)
+        self._write_bytes(OPC_CMD_WRITE_POWER_STATE, [OPC_N3_POPT_LASER_SWITCH << 1 | 1])
 
     def on(self):
         self.laser_on()
@@ -393,12 +386,10 @@ class OPCR1(OPC):
         self.pm_struct = _data_struct(OPC_R1_PM_STRUCT)
 
     def on(self):
-        self._wait_for_command(OPC_CMD_WRITE_POWER_STATE)
-        self._send_command(0x03)
+        self._write_bytes(OPC_CMD_WRITE_POWER_STATE, [0x03])
 
     def off(self):
-        self._wait_for_command(OPC_CMD_WRITE_POWER_STATE)
-        self._send_command(0x00)
+        self._write_bytes(OPC_CMD_WRITE_POWER_STATE, [0x00])
 
     def reset(self):
         return self._wait_for_command(OPC_CMD_RESET)
@@ -421,12 +412,10 @@ class OPCN2(OPC):
         self.pm_struct = _data_struct(OPC_N2_PM_STRUCT)
 
     def on(self):
-        self._wait_for_command(OPC_CMD_WRITE_POWER_STATE)
-        self._send_command(0x00)
+        self._write_bytes(OPC_CMD_WRITE_POWER_STATE, [0x00])
 
     def off(self):
-        self._wait_for_command(OPC_CMD_WRITE_POWER_STATE)
-        self._send_command(0x01)
+        self._write_bytes(OPC_CMD_WRITE_POWER_STATE, [0x01])
 
     def power_state(self):
         return self._read_struct(OPC_CMD_READ_POWER_STATE, self.popt_struct)
