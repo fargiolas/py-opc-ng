@@ -209,7 +209,7 @@ class OPC(object):
         sleep(10e-6)
         return r
 
-    def _wait_for_command(self, cmd):
+    def _send_command_and_wait(self, cmd):
         r = OPC_BUSY
         attempts = 0
 
@@ -244,7 +244,7 @@ class OPC(object):
         return True
 
     def _read_bytes(self, cmd, sz):
-        self._wait_for_command(cmd)
+        self._send_command_and_wait(cmd)
         l = []
         for i in range(sz):
             l += [self._send_command(cmd)]
@@ -252,7 +252,7 @@ class OPC(object):
         return l
 
     def _write_bytes(self, cmd, l):
-        self._wait_for_command(cmd)
+        self._send_command_and_wait(cmd)
         for c in l:
             self._send_command(c)
 
@@ -302,7 +302,7 @@ class OPC(object):
         return major, minor
 
     def ping(self):
-        return self._wait_for_command(OPC_CMD_CHECK_STATUS)
+        return self._send_command_and_wait(OPC_CMD_CHECK_STATUS)
 
     def checksum(self, data, raw_bytes):
         raw_bytes = raw_bytes[:-2]
@@ -364,7 +364,7 @@ class OPCN3(OPC):
         self.fan_off()
 
     def reset(self):
-        return self._wait_for_command(OPC_CMD_RESET)
+        return self._send_command_and_wait(OPC_CMD_RESET)
 
     def histogram_post_process(self, hist):
         hist['Temperature'] = self._convert_temperature(hist['Temperature'])
@@ -392,7 +392,7 @@ class OPCR1(OPC):
         self._write_bytes(OPC_CMD_WRITE_POWER_STATE, [0x00])
 
     def reset(self):
-        return self._wait_for_command(OPC_CMD_RESET)
+        return self._send_command_and_wait(OPC_CMD_RESET)
 
     def histogram_post_process(self, hist):
         hist['Temperature'] = self._convert_temperature(hist['Temperature'])
