@@ -19,7 +19,7 @@ OPC_N3_POPT_LASER_POT    = 2
 OPC_N3_POPT_LASER_SWITCH = 3
 OPC_N3_POPT_GAIN_TOGGLE  = 4
 
-OPC_N3_POPT_STRUCT =         [['FanON',               'uint8'],
+OPC_N3_POPT_STRUCT =      [['FanON',               'uint8'],
                            ['LaserON',             'uint8'],
                            ['FanDACVal',           'uint8'],
                            ['LaserDACVal',         'uint8'],
@@ -189,6 +189,8 @@ class _data_struct(object):
         return [k for k, t in self.data_struct]
 
     def unpack(self, raw_bytes):
+        assert(len(raw_bytes) == self.size)
+
         data = dict()
         c = 0
         for k, t in self.data_struct:
@@ -198,6 +200,8 @@ class _data_struct(object):
 
         return data
 
+class OPCError(IOError):
+    pass
 
 class OPC(object):
     def __init__(self, spi):
@@ -220,41 +224,44 @@ class OPC(object):
             # and communication should cease for > 2s to allow the OPC-N3 to realise the error and
             # clear its buffered data. [Alphasense 072-0502]
             if r != OPC_BUSY:
-                print('something wrong, received unexpected response: 0x{:02X}'.format(r))
-                print('waiting 5s for the device to settle')
+                # wait for the device to settle
                 sleep(5)
-                return False
+                raise OPCError("Received unexpected response 0x{:02X} for command: 0x{:02X}".format(r, cmd))
 
             if attempts > 20:
                 # if this cycle has happened many times, e.g. 20, wait > 2s ( < 10s) for OPC's SPI
                 # buffer to reset [Alphasense 072-0503]
-                print('opc not responding, waiting 5s for the SPI buffer to reset')
+                # print('opc not responding, waiting 5s for the SPI buffer to reset')
                 sleep(5)
 
             if attempts > 25:
                 # this is not described by Alphasense manuals but I've seen it happen with N3
-                print('this is taking too long, something wrong, aborting')
-                return False
+                raise OPCError("Timeout after sending command: 0x{:02X}".format(cmd))
 
             r = self._send_command(cmd)
             sleep(0.02)   # wait > 10 ms (< 100 ms)
 
             attempts = attempts + 1
 
-        return True
-
     def _read_bytes(self, cmd, sz):
-        self._send_command_and_wait(cmd)
         l = []
-        for i in range(sz):
-            l += [self._send_command(cmd)]
+        try:
+            self._send_command_and_wait(cmd)
+            for i in range(sz):
+                l += [self._send_command(cmd)]
+
+        except OPCError as e:
+            print("Error while reading bytes from the device: {}".format(e))
 
         return l
 
     def _write_bytes(self, cmd, l):
-        self._send_command_and_wait(cmd)
-        for c in l:
-            self._send_command(c)
+        try:
+            self._send_command_and_wait(cmd)
+            for c in l:
+                self._send_command(c)
+        except OPCError as e:
+            print("Error while reading bytes from the device: {}".format(e))
 
     def _read_struct(self, cmd, m):
         raw_bytes = self._read_bytes(cmd, m.size)
@@ -302,7 +309,11 @@ class OPC(object):
         return major, minor
 
     def ping(self):
-        return self._send_command_and_wait(OPC_CMD_CHECK_STATUS)
+        try:
+            self._send_command_and_wait(OPC_CMD_CHECK_STATUS)
+            return True
+        except:
+            return False
 
     def checksum(self, data, raw_bytes):
         raw_bytes = raw_bytes[:-2]
@@ -364,7 +375,7 @@ class OPCN3(OPC):
         self.fan_off()
 
     def reset(self):
-        return self._send_command_and_wait(OPC_CMD_RESET)
+        self._send_command_and_wait(OPC_CMD_RESET)
 
     def histogram_post_process(self, hist):
         hist['Temperature'] = self._convert_temperature(hist['Temperature'])
