@@ -1,38 +1,38 @@
 import struct
 from time import sleep
 
-OPC_READY = 0xF3
-OPC_BUSY  = 0x31
+_OPC_READY = 0xF3
+_OPC_BUSY  = 0x31
 
-OPC_CMD_WRITE_POWER_STATE   = 0x03
-OPC_CMD_READ_POWER_STATE    = 0x13
-OPC_CMD_READ_INFO_STRING    = 0x3F
-OPC_CMD_READ_SERIAL_STRING  = 0x10
-OPC_CMD_READ_FW_VERSION     = 0x12
-OPC_CMD_READ_HISTOGRAM      = 0x30
-OPC_CMD_READ_PM             = 0x32
-OPC_CMD_READ_CONFIG         = 0x3C
-OPC_CMD_CHECK_STATUS        = 0xCF
-OPC_CMD_RESET               = 0x06
-OPC_N3_POPT_FAN_POT      = 1
-OPC_N3_POPT_LASER_POT    = 2
-OPC_N3_POPT_LASER_SWITCH = 3
-OPC_N3_POPT_GAIN_TOGGLE  = 4
+_OPC_CMD_WRITE_POWER_STATE   = 0x03
+_OPC_CMD_READ_POWER_STATE    = 0x13
+_OPC_CMD_READ_INFO_STRING    = 0x3F
+_OPC_CMD_READ_SERIAL_STRING  = 0x10
+_OPC_CMD_READ_FW_VERSION     = 0x12
+_OPC_CMD_READ_HISTOGRAM      = 0x30
+_OPC_CMD_READ_PM             = 0x32
+_OPC_CMD_READ_CONFIG         = 0x3C
+_OPC_CMD_CHECK_STATUS        = 0xCF
+_OPC_CMD_RESET               = 0x06
+_OPC_N3_POPT_FAN_POT      = 1
+_OPC_N3_POPT_LASER_POT    = 2
+_OPC_N3_POPT_LASER_SWITCH = 3
+_OPC_N3_POPT_GAIN_TOGGLE  = 4
 
-OPC_N3_POPT_STRUCT =      [['FanON',               'uint8'],
+_OPC_N3_POPT_STRUCT =      [['FanON',               'uint8'],
                            ['LaserON',             'uint8'],
                            ['FanDACVal',           'uint8'],
                            ['LaserDACVal',         'uint8'],
                            ['LaserSwitch',         'uint8'],
                            ['GainToggle',          'uint8']]
 
-OPC_N2_POPT_STRUCT =      [['FanON',               'uint8'],
+_OPC_N2_POPT_STRUCT =      [['FanON',               'uint8'],
                            ['LaserON',             'uint8'],
                            ['FanDACVal',           'uint8'],
                            ['LaserDACVal',         'uint8']]
 
 
-OPC_N2_HISTOGRAM_STRUCT = [['Bin 0',              'uint16'],
+_OPC_N2_HISTOGRAM_STRUCT = [['Bin 0',              'uint16'],
                            ['Bin 1',              'uint16'],
                            ['Bin 2',              'uint16'],
                            ['Bin 3',              'uint16'],
@@ -61,7 +61,7 @@ OPC_N2_HISTOGRAM_STRUCT = [['Bin 0',              'uint16'],
                            ['PM10',              'float32']]
 
 #[*[['Bin {}'.format(b), t] for b, t in zip(range(24), ["uint16"]*24)],
-OPC_N3_HISTOGRAM_STRUCT = [['Bin 0',              'uint16'],
+_OPC_N3_HISTOGRAM_STRUCT = [['Bin 0',              'uint16'],
                            ['Bin 1',              'uint16'],
                            ['Bin 2',              'uint16'],
                            ['Bin 3',              'uint16'],
@@ -104,18 +104,18 @@ OPC_N3_HISTOGRAM_STRUCT = [['Bin 0',              'uint16'],
                            ['Laser status',       'uint16'],
                            ['Checksum',           'uint16']]
 
-OPC_N2_PM_STRUCT =        [['PM1',               'float32'],
+_OPC_N2_PM_STRUCT =        [['PM1',               'float32'],
                            ['PM2.5',             'float32'],
                            ['PM10',              'float32']]
 
-OPC_N3_PM_STRUCT =        [['PM1',               'float32'],
+_OPC_N3_PM_STRUCT =        [['PM1',               'float32'],
                            ['PM2.5',             'float32'],
                            ['PM10',              'float32'],
                            ['Checksum',           'uint16']]
 
-OPC_R1_PM_STRUCT = OPC_N3_PM_STRUCT
+_OPC_R1_PM_STRUCT = _OPC_N3_PM_STRUCT
 
-OPC_R1_HISTOGRAM_STRUCT = [['Bin 0',              'uint16'],
+_OPC_R1_HISTOGRAM_STRUCT = [['Bin 0',              'uint16'],
                            ['Bin 1',              'uint16'],
                            ['Bin 2',              'uint16'],
                            ['Bin 3',              'uint16'],
@@ -214,16 +214,16 @@ class OPC(object):
         return r
 
     def _send_command_and_wait(self, cmd):
-        r = OPC_BUSY
+        r = _OPC_BUSY
         attempts = 0
 
-        while (r != OPC_READY):
+        while (r != _OPC_READY):
             # The first returned byte should always be 0x31 (busy). Subsequent returned bytes will
             # either be 0x31 (busy) or 0xF3 (ready) depending on the status of the OPC-N3. If
             # another byte value is received by the SPI master at this stage, an error has occurred
             # and communication should cease for > 2s to allow the OPC-N3 to realise the error and
             # clear its buffered data. [Alphasense 072-0502]
-            if r != OPC_BUSY:
+            if r != _OPC_BUSY:
                 # wait for the device to settle
                 sleep(5)
                 raise OPCError("Received unexpected response 0x{:02X} for command: 0x{:02X}".format(r, cmd))
@@ -297,20 +297,20 @@ class OPC(object):
         return hist
 
     def info(self):
-        l = self._read_bytes(OPC_CMD_READ_INFO_STRING, 60)
+        l = self._read_bytes(_OPC_CMD_READ_INFO_STRING, 60)
         return ''.join([chr(c) for c in l])
 
     def serial(self):
-        l = self._read_bytes(OPC_CMD_READ_SERIAL_STRING, 60)
+        l = self._read_bytes(_OPC_CMD_READ_SERIAL_STRING, 60)
         return ''.join([chr(c) for c in l])
 
     def fwversion(self):
-        major, minor = self._read_bytes(OPC_CMD_READ_FW_VERSION, 2)
+        major, minor = self._read_bytes(_OPC_CMD_READ_FW_VERSION, 2)
         return major, minor
 
     def ping(self):
         try:
-            self._send_command_and_wait(OPC_CMD_CHECK_STATUS)
+            self._send_command_and_wait(_OPC_CMD_CHECK_STATUS)
             return True
         except:
             return False
@@ -334,37 +334,37 @@ class OPC(object):
         return crc
 
     def histogram(self, raw=False):
-        data = self._read_struct(OPC_CMD_READ_HISTOGRAM, self.histogram_struct)
+        data = self._read_struct(_OPC_CMD_READ_HISTOGRAM, self.histogram_struct)
         if raw or (data is None):
             return data
         else:
             return self.histogram_post_process(data)
 
     def pm(self):
-        return self._read_struct(OPC_CMD_READ_PM, self.pm_struct)
+        return self._read_struct(_OPC_CMD_READ_PM, self.pm_struct)
 
 class OPCN3(OPC):
     def __init__(self, spi):
         super().__init__(spi)
 
-        self.histogram_struct = _data_struct(OPC_N3_HISTOGRAM_STRUCT)
-        self.popt_struct = _data_struct(OPC_N3_POPT_STRUCT)
-        self.pm_struct = _data_struct(OPC_N3_PM_STRUCT)
+        self.histogram_struct = _data_struct(_OPC_N3_HISTOGRAM_STRUCT)
+        self.popt_struct = _data_struct(_OPC_N3_POPT_STRUCT)
+        self.pm_struct = _data_struct(_OPC_N3_PM_STRUCT)
 
     def power_state(self):
-        return self._read_struct(OPC_CMD_READ_POWER_STATE, self.popt_struct)
+        return self._read_struct(_OPC_CMD_READ_POWER_STATE, self.popt_struct)
 
     def fan_off(self):
-        self._write_bytes(OPC_CMD_WRITE_POWER_STATE, [OPC_N3_POPT_FAN_POT << 1 | 0])
+        self._write_bytes(_OPC_CMD_WRITE_POWER_STATE, [_OPC_N3_POPT_FAN_POT << 1 | 0])
 
     def fan_on(self):
-        self._write_bytes(OPC_CMD_WRITE_POWER_STATE, [OPC_N3_POPT_FAN_POT << 1 | 1])
+        self._write_bytes(_OPC_CMD_WRITE_POWER_STATE, [_OPC_N3_POPT_FAN_POT << 1 | 1])
 
     def laser_off(self):
-        self._write_bytes(OPC_CMD_WRITE_POWER_STATE, [OPC_N3_POPT_LASER_SWITCH << 1 | 0])
+        self._write_bytes(_OPC_CMD_WRITE_POWER_STATE, [_OPC_N3_POPT_LASER_SWITCH << 1 | 0])
 
     def laser_on(self):
-        self._write_bytes(OPC_CMD_WRITE_POWER_STATE, [OPC_N3_POPT_LASER_SWITCH << 1 | 1])
+        self._write_bytes(_OPC_CMD_WRITE_POWER_STATE, [_OPC_N3_POPT_LASER_SWITCH << 1 | 1])
 
     def on(self):
         self.laser_on()
@@ -375,7 +375,7 @@ class OPCN3(OPC):
         self.fan_off()
 
     def reset(self):
-        self._send_command_and_wait(OPC_CMD_RESET)
+        self._send_command_and_wait(_OPC_CMD_RESET)
 
     def histogram_post_process(self, hist):
         hist['Temperature'] = self._convert_temperature(hist['Temperature'])
@@ -393,17 +393,17 @@ class OPCR1(OPC):
     def __init__(self, spi):
         super().__init__(spi)
 
-        self.histogram_struct = _data_struct(OPC_R1_HISTOGRAM_STRUCT)
-        self.pm_struct = _data_struct(OPC_R1_PM_STRUCT)
+        self.histogram_struct = _data_struct(_OPC_R1_HISTOGRAM_STRUCT)
+        self.pm_struct = _data_struct(_OPC_R1_PM_STRUCT)
 
     def on(self):
-        self._write_bytes(OPC_CMD_WRITE_POWER_STATE, [0x03])
+        self._write_bytes(_OPC_CMD_WRITE_POWER_STATE, [0x03])
 
     def off(self):
-        self._write_bytes(OPC_CMD_WRITE_POWER_STATE, [0x00])
+        self._write_bytes(_OPC_CMD_WRITE_POWER_STATE, [0x00])
 
     def reset(self):
-        return self._send_command_and_wait(OPC_CMD_RESET)
+        return self._send_command_and_wait(_OPC_CMD_RESET)
 
     def histogram_post_process(self, hist):
         hist['Temperature'] = self._convert_temperature(hist['Temperature'])
@@ -418,18 +418,18 @@ class OPCN2(OPC):
     def __init__(self, spi):
         super().__init__(spi)
 
-        self.histogram_struct = _data_struct(OPC_N2_HISTOGRAM_STRUCT)
-        self.popt_struct = _data_struct(OPC_N2_POPT_STRUCT)
-        self.pm_struct = _data_struct(OPC_N2_PM_STRUCT)
+        self.histogram_struct = _data_struct(_OPC_N2_HISTOGRAM_STRUCT)
+        self.popt_struct = _data_struct(_OPC_N2_POPT_STRUCT)
+        self.pm_struct = _data_struct(_OPC_N2_PM_STRUCT)
 
     def on(self):
-        self._write_bytes(OPC_CMD_WRITE_POWER_STATE, [0x00])
+        self._write_bytes(_OPC_CMD_WRITE_POWER_STATE, [0x00])
 
     def off(self):
-        self._write_bytes(OPC_CMD_WRITE_POWER_STATE, [0x01])
+        self._write_bytes(_OPC_CMD_WRITE_POWER_STATE, [0x01])
 
     def power_state(self):
-        return self._read_struct(OPC_CMD_READ_POWER_STATE, self.popt_struct)
+        return self._read_struct(_OPC_CMD_READ_POWER_STATE, self.popt_struct)
 
     def checksum(self, data, raw_bytes):
         bins = [data[k] for k in data.keys() if 'Bin ' in k]
