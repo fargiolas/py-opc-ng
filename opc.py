@@ -446,3 +446,15 @@ class OPCN2(_OPC):
         hist = self._convert_mtof(hist)
 
         return hist
+
+def detect(spi):
+    o = _OPC(spi)
+    info = o.info()
+    if "OPC-N3" in info:
+        return OPCN3(spi)
+    elif "OPC-R1" in info:
+        return OPCR1(spi)
+    elif "OPC-N2" in info:
+        return OPCN2(spi)
+    else:
+        return None
