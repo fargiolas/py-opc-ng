@@ -203,7 +203,7 @@ class _data_struct(object):
 class OPCError(IOError):
     pass
 
-class OPC(object):
+class _OPC(object):
     def __init__(self, spi):
         self.spi = spi
 
@@ -343,7 +343,7 @@ class OPC(object):
     def pm(self):
         return self._read_struct(_OPC_CMD_READ_PM, self.pm_struct)
 
-class OPCN3(OPC):
+class OPCN3(_OPC):
     def __init__(self, spi):
         super().__init__(spi)
 
@@ -389,7 +389,7 @@ class OPCN3(OPC):
 
         return hist
 
-class OPCR1(OPC):
+class OPCR1(_OPC):
     def __init__(self, spi):
         super().__init__(spi)
 
@@ -414,7 +414,7 @@ class OPCR1(OPC):
 
         return hist
 
-class OPCN2(OPC):
+class OPCN2(_OPC):
     def __init__(self, spi):
         super().__init__(spi)
 
