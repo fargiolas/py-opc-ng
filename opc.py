@@ -1,6 +1,12 @@
 import struct
 from time import sleep
 
+try:
+    from usbiss.usbiss import USBISSError
+except:
+    class USBISSError(BaseException):
+        pass
+
 _OPC_READY = 0xF3
 _OPC_BUSY  = 0x31
 
@@ -252,6 +258,10 @@ class _OPC(object):
 
         except OPCError as e:
             print("Error while reading bytes from the device: {}".format(e))
+        except USBISSError as e:
+            print("USB-SPI communication error: {}".format(e))
+            print("Waiting 5 seconds for the device to settle")
+            sleep(5)
 
         return l
 
@@ -262,6 +272,10 @@ class _OPC(object):
                 self._send_command(c)
         except OPCError as e:
             print("Error while reading bytes from the device: {}".format(e))
+        except USBISSError as e:
+            print("USB-SPI communication error: {}".format(e))
+            print("Waiting 5 seconds for the device to settle")
+            sleep(5)
 
     def _read_struct(self, cmd, m):
         raw_bytes = self._read_bytes(cmd, m.size)
