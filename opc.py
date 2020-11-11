@@ -242,6 +242,7 @@ class OPCError(IOError):
 
 class _OPC(object):
     """OPC Base class, holds common logic amongst different device
+
     :param spi: a SPI device as returned by SpiDev or USBiss
     """
     def __init__(self, spi):
@@ -454,7 +455,10 @@ class _OPC(object):
         return self._read_struct(_OPC_CMD_READ_PM, self.pm_struct)
 
 class OPCN3(_OPC):
-    """OPC-N3"""
+    """OPC-N3
+
+    :param spi: a SPI device as returned by SpiDev or USBiss
+    """
     def __init__(self, spi):
         super().__init__(spi)
 
@@ -463,35 +467,67 @@ class OPCN3(_OPC):
         self.pm_struct = _data_struct(_OPC_N3_PM_STRUCT)
 
     def power_state(self):
+        """Report peripherals and digital pots state.
+
+        :returns: a dictionary of each peripheral current state.
+        :Example:
+
+        >>> o = OPCN3(spi)
+        >>> o.power_state()
+        {'FanON': 0,
+         'LaserON': 1,
+         'FanDACVal': 255,
+         'LaserDACVal': 140,
+         'LaserSwitch': 0,
+         'GainToggle': 3}
+        """
         return self._read_struct(_OPC_CMD_READ_POWER_STATE, self.popt_struct)
 
     # Turn peripherals on/off. POPT flag, left shifted by 1 selects
     # the proper digital pot/switch, LSB sets its state, 0 for off, 1
     # for on.
     def fan_off(self):
+        """Power off fan"""
         self._write_bytes(_OPC_CMD_WRITE_POWER_STATE, [_OPC_N3_POPT_FAN_POT << 1 | 0])
 
     def fan_on(self):
+        """Power on fan. Wait at least 600ms for the fan speed to settle and
+        power absorption peak to pass before sending more commands.
+
+        """
         self._write_bytes(_OPC_CMD_WRITE_POWER_STATE, [_OPC_N3_POPT_FAN_POT << 1 | 1])
 
     def laser_off(self):
+        """Power off laser"""
         self._write_bytes(_OPC_CMD_WRITE_POWER_STATE, [_OPC_N3_POPT_LASER_SWITCH << 1 | 0])
 
     def laser_on(self):
+        """Power on laser"""
         self._write_bytes(_OPC_CMD_WRITE_POWER_STATE, [_OPC_N3_POPT_LASER_SWITCH << 1 | 1])
 
     def on(self):
+        """Power on peripherals (laser and fan). Wait at least 600ms for the
+        fan speed to settle and power absorption peak to pass before
+        sending more commands.
+
+        """
         self.laser_on()
         self.fan_on()
 
     def off(self):
+        """Power off peripherals (laser and fan)."""
         self.laser_off()
         self.fan_off()
 
     def reset(self):
+        """Reset device. Not clear what it does, poorly documented in
+        manufacturer docs.
+
+        """
         self._send_command_and_wait(_OPC_CMD_RESET)
 
     def _histogram_post_process(self, hist):
+        """Convert histogram raw data into proper measurements."""
         hist['Temperature'] = self._convert_temperature(hist['Temperature'])
         hist['Relative humidity'] = self._convert_temperature(hist['Relative humidity'])
 
@@ -504,7 +540,10 @@ class OPCN3(_OPC):
         return hist
 
 class OPCR1(_OPC):
-    """OPC-R1"""
+    """OPC-R1
+
+    :param spi: a SPI device as returned by SpiDev or USBiss
+    """
     def __init__(self, spi):
         super().__init__(spi)
 
@@ -512,15 +551,27 @@ class OPCR1(_OPC):
         self.pm_struct = _data_struct(_OPC_R1_PM_STRUCT)
 
     def on(self):
+        """Power on peripherals (laser and fan). Wait at least 600ms for the
+        fan speed to settle and power absorption peak to pass before
+        sending more commands.
+
+        """
         self._write_bytes(_OPC_CMD_WRITE_POWER_STATE, [0x03])
 
     def off(self):
+        """Power off peripherals (laser and fan)."""
+
         self._write_bytes(_OPC_CMD_WRITE_POWER_STATE, [0x00])
 
     def reset(self):
+        """Reset device. Not clear what it does, poorly documented in
+        manufacturer docs.
+
+        """
         return self._send_command_and_wait(_OPC_CMD_RESET)
 
     def _histogram_post_process(self, hist):
+        """Convert histogram raw data into proper measurements."""
         hist['Temperature'] = self._convert_temperature(hist['Temperature'])
         hist['Relative humidity'] = self._convert_temperature(hist['Relative humidity'])
 
@@ -530,7 +581,10 @@ class OPCR1(_OPC):
         return hist
 
 class OPCN2(_OPC):
-    """Experimental OPC-N2 support, only tested with firmware 18"""
+    """Experimental OPC-N2 support, only tested with firmware 18
+
+    :param spi: a SPI device as returned by SpiDev or USBiss
+    """
     def __init__(self, spi):
         super().__init__(spi)
 
@@ -539,15 +593,34 @@ class OPCN2(_OPC):
         self.pm_struct = _data_struct(_OPC_N2_PM_STRUCT)
 
     def on(self):
+        """Power on peripherals (laser and fan). Wait at least 600ms for the
+        fan speed to settle and power absorption peak to pass before
+        sending more commands.
+
+        """
         self._write_bytes(_OPC_CMD_WRITE_POWER_STATE, [0x00])
 
     def off(self):
+        """Power off peripherals."""
         self._write_bytes(_OPC_CMD_WRITE_POWER_STATE, [0x01])
 
     def power_state(self):
+        """Report peripherals and digital pots state.
+
+        :returns: a dictionary of each peripheral current state.
+        :Example:
+
+        >>> o = OPCN2(spi)
+        >>> o.power_state()
+        {'FanON': 1, 'LaserON': 1, 'FanDACVal': 255, 'LaserDACVal': 164}
+        """
         return self._read_struct(_OPC_CMD_READ_POWER_STATE, self.popt_struct)
 
     def _checksum(self, data, raw_bytes):
+        """Checksum calculation for OPC-N2. Least significant 16bits of
+        histogram bin sum.
+
+        """
         bins = [data[k] for k in data.keys() if 'Bin ' in k]
         binsum = 0
         for b in bins:
@@ -557,6 +630,13 @@ class OPCN2(_OPC):
         return binsum & 0xFFFF
 
     def _histogram_post_process(self, hist):
+        """Convert raw histogram data to measurements."""
+
+        # Temperature is an odd beast here, can alternatively report
+        # Temperature and Pressure but on my devices it always returns
+        # 10000 which should be considered invalid. Guess not all the
+        # units have these sensors? Disabling it anyway.
+
         # hist['Temperature'] = self._convert_temperature(hist['Temperature'])
 
         hist = self._convert_hist_to_count_per_ml(hist)
