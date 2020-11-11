@@ -351,7 +351,7 @@ class _OPC(object):
         data = m.unpack(raw_bytes)
 
         if 'Checksum' in m.keys:
-            crc = self.checksum(data, raw_bytes)
+            crc = self._checksum(data, raw_bytes)
             if data['Checksum'] != crc:
                 print('checksum error!')
                 return None
@@ -408,7 +408,7 @@ class _OPC(object):
         except:
             return False
 
-    def checksum(self, data, raw_bytes):
+    def _checksum(self, data, raw_bytes):
         """Checksum calculation for OPC-N3 and R1. See e.g. Appendix E,
         Alphasense manual 072-0502. Python translation of their C code.
         """
@@ -444,7 +444,7 @@ class _OPC(object):
         if raw or (data is None):
             return data
         else:
-            return self.histogram_post_process(data)
+            return self._histogram_post_process(data)
 
     def pm(self):
         """Query particle mass loadings.
@@ -491,7 +491,7 @@ class OPCN3(_OPC):
     def reset(self):
         self._send_command_and_wait(_OPC_CMD_RESET)
 
-    def histogram_post_process(self, hist):
+    def _histogram_post_process(self, hist):
         hist['Temperature'] = self._convert_temperature(hist['Temperature'])
         hist['Relative humidity'] = self._convert_temperature(hist['Relative humidity'])
 
@@ -520,7 +520,7 @@ class OPCR1(_OPC):
     def reset(self):
         return self._send_command_and_wait(_OPC_CMD_RESET)
 
-    def histogram_post_process(self, hist):
+    def _histogram_post_process(self, hist):
         hist['Temperature'] = self._convert_temperature(hist['Temperature'])
         hist['Relative humidity'] = self._convert_temperature(hist['Relative humidity'])
 
@@ -547,7 +547,7 @@ class OPCN2(_OPC):
     def power_state(self):
         return self._read_struct(_OPC_CMD_READ_POWER_STATE, self.popt_struct)
 
-    def checksum(self, data, raw_bytes):
+    def _checksum(self, data, raw_bytes):
         bins = [data[k] for k in data.keys() if 'Bin ' in k]
         binsum = 0
         for b in bins:
@@ -556,7 +556,7 @@ class OPCN2(_OPC):
         # checksum is the least significant dword of the binned data sum
         return binsum & 0xFFFF
 
-    def histogram_post_process(self, hist):
+    def _histogram_post_process(self, hist):
         # hist['Temperature'] = self._convert_temperature(hist['Temperature'])
 
         hist = self._convert_hist_to_count_per_ml(hist)
