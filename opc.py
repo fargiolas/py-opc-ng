@@ -7,9 +7,12 @@ except:
     class USBISSError(BaseException):
         pass
 
+
+# Alphasense OPC commands and flags
 _OPC_READY = 0xF3
 _OPC_BUSY  = 0x31
 
+# Most opcodes are shared amongst the various device versions
 _OPC_CMD_WRITE_POWER_STATE   = 0x03
 _OPC_CMD_READ_POWER_STATE    = 0x13
 _OPC_CMD_READ_INFO_STRING    = 0x3F
@@ -20,11 +23,21 @@ _OPC_CMD_READ_PM             = 0x32
 _OPC_CMD_READ_CONFIG         = 0x3C
 _OPC_CMD_CHECK_STATUS        = 0xCF
 _OPC_CMD_RESET               = 0x06
+# OPC-N3 peripheral power status "OptionByte" flags. See 072-0503.
 _OPC_N3_POPT_FAN_POT      = 1
 _OPC_N3_POPT_LASER_POT    = 2
 _OPC_N3_POPT_LASER_SWITCH = 3
 _OPC_N3_POPT_GAIN_TOGGLE  = 4
 
+# Most device queries return a list of bytes that must be
+# decoded. Each device (N2, N3, R1) return a specific set of data,
+# differing in size, ordering and data types.
+
+# The following lists define how this data is structured, both for
+# reading (decoding) and for writing (encoding) data to an OPC device.
+
+# N3 and N2 DAC and power state ("digital pot"), queries with 0x13. R1
+# doesn't seem to support this command.
 _OPC_N3_POPT_STRUCT =      [['FanON',               'uint8'],
                            ['LaserON',             'uint8'],
                            ['FanDACVal',           'uint8'],
@@ -37,7 +50,7 @@ _OPC_N2_POPT_STRUCT =      [['FanON',               'uint8'],
                            ['FanDACVal',           'uint8'],
                            ['LaserDACVal',         'uint8']]
 
-
+# Histogram structs
 _OPC_N2_HISTOGRAM_STRUCT = [['Bin 0',              'uint16'],
                            ['Bin 1',              'uint16'],
                            ['Bin 2',              'uint16'],
@@ -110,17 +123,6 @@ _OPC_N3_HISTOGRAM_STRUCT = [['Bin 0',              'uint16'],
                            ['Laser status',       'uint16'],
                            ['Checksum',           'uint16']]
 
-_OPC_N2_PM_STRUCT =        [['PM1',               'float32'],
-                           ['PM2.5',             'float32'],
-                           ['PM10',              'float32']]
-
-_OPC_N3_PM_STRUCT =        [['PM1',               'float32'],
-                           ['PM2.5',             'float32'],
-                           ['PM10',              'float32'],
-                           ['Checksum',           'uint16']]
-
-_OPC_R1_PM_STRUCT = _OPC_N3_PM_STRUCT
-
 _OPC_R1_HISTOGRAM_STRUCT = [['Bin 0',              'uint16'],
                            ['Bin 1',              'uint16'],
                            ['Bin 2',              'uint16'],
@@ -153,7 +155,26 @@ _OPC_R1_HISTOGRAM_STRUCT = [['Bin 0',              'uint16'],
                            ['Checksum',           'uint16']]
 
 
+# Particle Mass loadings struct
+_OPC_N2_PM_STRUCT =        [['PM1',               'float32'],
+                           ['PM2.5',             'float32'],
+                           ['PM10',              'float32']]
+
+_OPC_N3_PM_STRUCT =        [['PM1',               'float32'],
+                           ['PM2.5',             'float32'],
+                           ['PM10',              'float32'],
+                           ['Checksum',           'uint16']]
+
+_OPC_R1_PM_STRUCT = _OPC_N3_PM_STRUCT
+
+
+# Data struct encoding/decoding helper functions
 def _unpack(t, x):
+    """Helper function to convert a list of bytes as returned from an the
+    device into a number with the proper datatype. 
+
+    :param t: datatype (e.g. 'uint8', 'float32', ...)
+    """
     if t == 'uint8':
         return x[0]
     elif t == 'uint16':
@@ -167,6 +188,10 @@ def _unpack(t, x):
         raise ValueError
 
 def _len(t):
+    """Returns the size in bytes of a given datatype
+
+    :param t: datatype (e.g. 'uint8', 'float32')
+    """
     if t == 'uint8':
         return 1
     elif t == 'uint16':
@@ -180,6 +205,12 @@ def _len(t):
 
 
 class _data_struct(object):
+    """Helper class to manage a data sequence to be read or written
+    sequentially to the OPC using SPI. Mostly caches struct size and
+    dictionary keys to void unnecessary looping each time they're
+    neede.
+
+    """
     def __init__(self, m):
         self.data_struct = m
         self.size = self._struct_size(self.data_struct)
@@ -210,16 +241,35 @@ class OPCError(IOError):
     pass
 
 class _OPC(object):
+    """OPC Base class, holds common logic amongst different device
+    :param spi: a SPI device as returned by SpiDev or USBiss
+    """
     def __init__(self, spi):
         self.spi = spi
 
-    def _send_command(self, cmd):
+    def _send_command(self, cmd, interval=10e-6):
+        """Sends a single command through the SPI bus.
+        :param cmd: command opcode (single byte)
+        :param interval: seconds to sleep after sending a command (default: 10us)
+        """
         r = self.spi.xfer([cmd])[0]
-        # print('cmd: 0x{:02X} r: 0x{:02X}'.format(cmd, r))
-        sleep(10e-6)
+        sleep(interval)
         return r
 
     def _send_command_and_wait(self, cmd):
+        """OPC-N3 and R1 always return _OPC_BUSY after sending a command.  The
+        device keeps returning _OPC_BUSY until it's completed the
+        requested operation or ready for sending or receiving a data
+        sequence. At this point it returns _OPC_READY.  OPC-N2 always
+        returns _OPC_READY so it should work transparently by just
+        skipping the busy/waiting logic.
+
+        Raises an exception if the device gives bogus responses or if
+        it stays busy for too much time (maximum timeout: ~25 seconds)
+
+        :param cmd: command opcode (single byte)
+
+        """
         r = _OPC_BUSY
         attempts = 0
 
@@ -244,12 +294,17 @@ class _OPC(object):
                 # this is not described by Alphasense manuals but I've seen it happen with N3
                 raise OPCError("Timeout after sending command: 0x{:02X}".format(cmd))
 
-            r = self._send_command(cmd)
-            sleep(0.02)   # wait > 10 ms (< 100 ms)
+            # wait > 10 ms (< 100 ms)
+            r = self._send_command(cmd, interval=0.02)
 
             attempts = attempts + 1
 
     def _read_bytes(self, cmd, sz):
+        """Read a sequence of bytes.
+
+        :param cmd: command opcode
+        :param sz: number of bytes to read
+        """
         l = []
         try:
             self._send_command_and_wait(cmd)
@@ -266,6 +321,11 @@ class _OPC(object):
         return l
 
     def _write_bytes(self, cmd, l):
+        """Write a sequence of bytes.
+
+        :param cmd: command opcode
+        :param l: list of bytes to send
+        """
         try:
             self._send_command_and_wait(cmd)
             for c in l:
@@ -278,6 +338,15 @@ class _OPC(object):
             sleep(5)
 
     def _read_struct(self, cmd, m):
+        """Read a complex data structure (e.g. an histogram) from the
+        device. If appliable calculate data checksum and return None if it
+        fails.
+
+        :param cmd: command opcode
+        :param m: data structure definition
+
+        :returns: dictionary filled with the struct data
+        """
         raw_bytes = self._read_bytes(cmd, m.size)
         data = m.unpack(raw_bytes)
 
@@ -290,12 +359,17 @@ class _OPC(object):
         return data
 
     def _convert_temperature(self, x):
+        """Convert temperature to °C"""
         return -45. + 175. * x / (float(1<<16) - 1.)
 
     def _convert_humidity(self, x):
+        """Convert relative humidity to percentage"""
         return 100. * x / (float(1<<16) - 1.)
 
     def _convert_hist_to_count_per_ml(self, hist):
+        """Convert counts/s to counts/ml using flow rate and sampling period.
+        Changes histogram bins in-place.
+        """
         ml_per_period = hist['SFR'] * hist['Sampling Period']
         if ml_per_period > 0:
             for k in self.histogram_struct.keys:
@@ -305,24 +379,29 @@ class _OPC(object):
         return hist
 
     def _convert_mtof(self, hist):
+        """Convert MToF from 1/3us units. Changes MToF bins in-place"""
         for k in self.histogram_struct.keys:
             if 'MToF' in k:
                 hist[k] = hist[k] / 3.
         return hist
 
     def info(self):
+        """Returns device informations string"""
         l = self._read_bytes(_OPC_CMD_READ_INFO_STRING, 60)
         return ''.join([chr(c) for c in l])
 
     def serial(self):
+        """Returns device serial"""
         l = self._read_bytes(_OPC_CMD_READ_SERIAL_STRING, 60)
         return ''.join([chr(c) for c in l])
 
     def fwversion(self):
+        """Return device firmware version"""
         major, minor = self._read_bytes(_OPC_CMD_READ_FW_VERSION, 2)
         return major, minor
 
     def ping(self):
+        """Check device status. Returns True if the device is responding."""
         try:
             self._send_command_and_wait(_OPC_CMD_CHECK_STATUS)
             return True
@@ -330,6 +409,11 @@ class _OPC(object):
             return False
 
     def checksum(self, data, raw_bytes):
+        """Checksum calculation for OPC-N3 and R1. See e.g. Appendix E,
+        Alphasense manual 072-0502. Python translation of their C code.
+        """
+        # the following only works for N3 and R1, N2 is different and
+        # should override this
         raw_bytes = raw_bytes[:-2]
         poly = 0xA001
         init_crc_val = 0xFFFF
@@ -348,6 +432,14 @@ class _OPC(object):
         return crc
 
     def histogram(self, raw=False):
+        """Query and decode histogram data.
+
+        :param raw: if True do not post process data (e.g. converting
+                    raw temperature to degrees etc.) and return raw
+                    numbers instead.
+
+        :returns: a dictionary of histogram bins and auxiliary data
+        """
         data = self._read_struct(_OPC_CMD_READ_HISTOGRAM, self.histogram_struct)
         if raw or (data is None):
             return data
@@ -355,9 +447,14 @@ class _OPC(object):
             return self.histogram_post_process(data)
 
     def pm(self):
+        """Query particle mass loadings.
+
+        :returns: a dictionary containing PM1, PM2.5 and PM10 data.
+        """
         return self._read_struct(_OPC_CMD_READ_PM, self.pm_struct)
 
 class OPCN3(_OPC):
+    """OPC-N3"""
     def __init__(self, spi):
         super().__init__(spi)
 
@@ -368,6 +465,9 @@ class OPCN3(_OPC):
     def power_state(self):
         return self._read_struct(_OPC_CMD_READ_POWER_STATE, self.popt_struct)
 
+    # Turn peripherals on/off. POPT flag, left shifted by 1 selects
+    # the proper digital pot/switch, LSB sets its state, 0 for off, 1
+    # for on.
     def fan_off(self):
         self._write_bytes(_OPC_CMD_WRITE_POWER_STATE, [_OPC_N3_POPT_FAN_POT << 1 | 0])
 
@@ -404,6 +504,7 @@ class OPCN3(_OPC):
         return hist
 
 class OPCR1(_OPC):
+    """OPC-R1"""
     def __init__(self, spi):
         super().__init__(spi)
 
@@ -429,6 +530,7 @@ class OPCR1(_OPC):
         return hist
 
 class OPCN2(_OPC):
+    """Experimental OPC-N2 support, only tested with firmware 18"""
     def __init__(self, spi):
         super().__init__(spi)
 
@@ -451,6 +553,7 @@ class OPCN2(_OPC):
         for b in bins:
             binsum += b
 
+        # checksum is the least significant dword of the binned data sum
         return binsum & 0xFFFF
 
     def histogram_post_process(self, hist):
@@ -462,6 +565,13 @@ class OPCN2(_OPC):
         return hist
 
 def detect(spi):
+    """Try to autodetect a device from info string
+
+    :param spi: SPI device instance as returned by SpiDev or USBiss
+
+    :returns: an OPC(N3,N2,R1) instance, check type() to see if the
+    device was properly detected
+    """
     o = _OPC(spi)
     info = o.info()
     if "OPC-N3" in info:
