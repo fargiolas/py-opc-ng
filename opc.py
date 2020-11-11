@@ -237,7 +237,7 @@ class _data_struct(object):
 
         return data
 
-class OPCError(IOError):
+class _OPCError(IOError):
     pass
 
 class _OPC(object):
@@ -283,7 +283,7 @@ class _OPC(object):
             if r != _OPC_BUSY:
                 # wait for the device to settle
                 sleep(5)
-                raise OPCError("Received unexpected response 0x{:02X} for command: 0x{:02X}".format(r, cmd))
+                raise _OPCError("Received unexpected response 0x{:02X} for command: 0x{:02X}".format(r, cmd))
 
             if attempts > 20:
                 # if this cycle has happened many times, e.g. 20, wait > 2s ( < 10s) for OPC's SPI
@@ -293,7 +293,7 @@ class _OPC(object):
 
             if attempts > 25:
                 # this is not described by Alphasense manuals but I've seen it happen with N3
-                raise OPCError("Timeout after sending command: 0x{:02X}".format(cmd))
+                raise _OPCError("Timeout after sending command: 0x{:02X}".format(cmd))
 
             # wait > 10 ms (< 100 ms)
             r = self._send_command(cmd, interval=0.02)
@@ -312,7 +312,7 @@ class _OPC(object):
             for i in range(sz):
                 l += [self._send_command(cmd)]
 
-        except OPCError as e:
+        except _OPCError as e:
             print("Error while reading bytes from the device: {}".format(e))
         except USBISSError as e:
             print("USB-SPI communication error: {}".format(e))
@@ -331,7 +331,7 @@ class _OPC(object):
             self._send_command_and_wait(cmd)
             for c in l:
                 self._send_command(c)
-        except OPCError as e:
+        except _OPCError as e:
             print("Error while reading bytes from the device: {}".format(e))
         except USBISSError as e:
             print("USB-SPI communication error: {}".format(e))
@@ -649,8 +649,7 @@ def detect(spi):
 
     :param spi: SPI device instance as returned by SpiDev or USBiss
 
-    :returns: an OPC(N3,N2,R1) instance, check type() to see if the
-    device was properly detected
+    :returns: an OPC(N3,N2,R1) instance, check type() to see if the device was properly detected.
     """
     o = _OPC(spi)
     info = o.info()
