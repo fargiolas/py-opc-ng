@@ -1,12 +1,16 @@
 import struct
 from time import sleep
 
+import logging
+
 try:
     from usbiss.usbiss import USBISSError
 except:
     class USBISSError(BaseException):
         pass
 
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Alphasense OPC commands and flags
 _OPC_READY = 0xF3
@@ -254,6 +258,7 @@ class _OPC(object):
         :param interval: seconds to sleep after sending a command (default: 10us)
         """
         r = self.spi.xfer([cmd])[0]
+        logger.debug('command: 0x{:02X}, response: 0x{:02X} (\'{}\')'.format(cmd, r, chr(r)))
         sleep(interval)
         return r
 
@@ -288,7 +293,7 @@ class _OPC(object):
             if attempts > 20:
                 # if this cycle has happened many times, e.g. 20, wait > 2s ( < 10s) for OPC's SPI
                 # buffer to reset [Alphasense 072-0503]
-                # print('opc not responding, waiting 5s for the SPI buffer to reset')
+                logger.warning("Device not responding, waiting for 5s for the SPI buffer to reset")
                 sleep(5)
 
             if attempts > 25:
@@ -313,10 +318,10 @@ class _OPC(object):
                 l += [self._send_command(cmd)]
 
         except _OPCError as e:
-            print("Error while reading bytes from the device: {}".format(e))
+            logger.error("Error while reading bytes from the device: {}".format(e))
         except USBISSError as e:
-            print("USB-SPI communication error: {}".format(e))
-            print("Waiting 5 seconds for the device to settle")
+            logger.error("USB-SPI communication error: {}".format(e))
+            logger.warning("Waiting 5 seconds for the device to settle")
             sleep(5)
 
         return l
@@ -332,10 +337,10 @@ class _OPC(object):
             for c in l:
                 self._send_command(c)
         except _OPCError as e:
-            print("Error while reading bytes from the device: {}".format(e))
+            logger.error("Error while reading bytes from the device: {}".format(e))
         except USBISSError as e:
-            print("USB-SPI communication error: {}".format(e))
-            print("Waiting 5 seconds for the device to settle")
+            logger.error("USB-SPI communication error: {}".format(e))
+            logger.warning("Waiting 5 seconds for the device to settle")
             sleep(5)
 
     def _read_struct(self, cmd, m):
@@ -354,7 +359,7 @@ class _OPC(object):
         if 'Checksum' in m.keys:
             crc = self._checksum(data, raw_bytes)
             if data['Checksum'] != crc:
-                print('checksum error!')
+                logger.warning('Bad histogram data, invalid checksum')
                 return None
 
         return data
@@ -653,11 +658,18 @@ def detect(spi):
     """
     o = _OPC(spi)
     info = o.info()
+    logger.info('Detecting device type from info string: "{}"'.format(info))
     if "OPC-N3" in info:
-        return OPCN3(spi)
+        o = OPCN3(spi)
     elif "OPC-R1" in info:
-        return OPCR1(spi)
+        o = OPCR1(spi)
     elif "OPC-N2" in info:
-        return OPCN2(spi)
+        o = OPCN2(spi)
     else:
-        return None
+        o = None
+
+    if o:
+        logger.info('Detected an istance of: {}'.format(type(o)))
+    else:
+        logger.error('Could not detect a valid OPC device')
+    return o
