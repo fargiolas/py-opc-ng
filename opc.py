@@ -39,207 +39,160 @@ _OPC_N3_POPT_GAIN_TOGGLE  = 4
 
 # The following lists define how this data is structured, both for
 # reading (decoding) and for writing (encoding) data to an OPC device.
+# Each struct definition is a list of (key, fmt) pairs, with fmt in
+# python struct notation
 
 # N3 and N2 DAC and power state ("digital pot"), queries with 0x13. R1
 # doesn't seem to support this command.
-_OPC_N3_POPT_STRUCT =      [['FanON',               'uint8'],
-                           ['LaserON',             'uint8'],
-                           ['FanDACVal',           'uint8'],
-                           ['LaserDACVal',         'uint8'],
-                           ['LaserSwitch',         'uint8'],
-                           ['GainToggle',          'uint8']]
+_OPC_N3_POPT_STRUCT =      [['FanON',              'B'],
+                            ['LaserON',            'B'],
+                            ['FanDACVal',          'B'],
+                            ['LaserDACVal',        'B'],
+                            ['LaserSwitch',        'B'],
+                            ['GainToggle',         'B']]
 
-_OPC_N2_POPT_STRUCT =      [['FanON',               'uint8'],
-                           ['LaserON',             'uint8'],
-                           ['FanDACVal',           'uint8'],
-                           ['LaserDACVal',         'uint8']]
+_OPC_N2_POPT_STRUCT =      [['FanON',              'B'],
+                            ['LaserON',            'B'],
+                            ['FanDACVal',          'B'],
+                            ['LaserDACVal',        'B']]
 
 # Histogram structs
-_OPC_N2_HISTOGRAM_STRUCT = [['Bin 0',              'uint16'],
-                           ['Bin 1',              'uint16'],
-                           ['Bin 2',              'uint16'],
-                           ['Bin 3',              'uint16'],
-                           ['Bin 4',              'uint16'],
-                           ['Bin 5',              'uint16'],
-                           ['Bin 6',              'uint16'],
-                           ['Bin 7',              'uint16'],
-                           ['Bin 8',              'uint16'],
-                           ['Bin 9',              'uint16'],
-                           ['Bin 10',             'uint16'],
-                           ['Bin 11',             'uint16'],
-                           ['Bin 12',             'uint16'],
-                           ['Bin 13',             'uint16'],
-                           ['Bin 14',             'uint16'],
-                           ['Bin 15',             'uint16'],
-                           ['Bin1 MToF',           'uint8'],
-                           ['Bin3 MToF',           'uint8'],
-                           ['Bin5 MToF',           'uint8'],
-                           ['Bin7 MToF',           'uint8'],
-                           ['SFR',               'float32'],
-                           ['Temperature',        'uint32'],
-                           ['Sampling Period' ,  'float32'],
-                           ['Checksum',           'uint16'],
-                           ['PM1',               'float32'],
-                           ['PM2.5',             'float32'],
-                           ['PM10',              'float32']]
+_OPC_N2_HISTOGRAM_STRUCT = [['Bin 0',              'H'],
+                            ['Bin 1',              'H'],
+                            ['Bin 2',              'H'],
+                            ['Bin 3',              'H'],
+                            ['Bin 4',              'H'],
+                            ['Bin 5',              'H'],
+                            ['Bin 6',              'H'],
+                            ['Bin 7',              'H'],
+                            ['Bin 8',              'H'],
+                            ['Bin 9',              'H'],
+                            ['Bin 10',             'H'],
+                            ['Bin 11',             'H'],
+                            ['Bin 12',             'H'],
+                            ['Bin 13',             'H'],
+                            ['Bin 14',             'H'],
+                            ['Bin 15',             'H'],
+                            ['Bin1 MToF',          'B'],
+                            ['Bin3 MToF',          'B'],
+                            ['Bin5 MToF',          'B'],
+                            ['Bin7 MToF',          'B'],
+                            ['SFR',                'f'],
+                            ['Temperature',        'L'],
+                            ['Sampling Period' ,   'f'],
+                            ['Checksum',           'H'],
+                            ['PM1',                'f'],
+                            ['PM2.5',              'f'],
+                            ['PM10',               'f']]
 
-#[*[['Bin {}'.format(b), t] for b, t in zip(range(24), ["uint16"]*24)],
-_OPC_N3_HISTOGRAM_STRUCT = [['Bin 0',              'uint16'],
-                           ['Bin 1',              'uint16'],
-                           ['Bin 2',              'uint16'],
-                           ['Bin 3',              'uint16'],
-                           ['Bin 4',              'uint16'],
-                           ['Bin 5',              'uint16'],
-                           ['Bin 6',              'uint16'],
-                           ['Bin 7',              'uint16'],
-                           ['Bin 8',              'uint16'],
-                           ['Bin 9',              'uint16'],
-                           ['Bin 10',             'uint16'],
-                           ['Bin 11',             'uint16'],
-                           ['Bin 12',             'uint16'],
-                           ['Bin 13',             'uint16'],
-                           ['Bin 14',             'uint16'],
-                           ['Bin 15',             'uint16'],
-                           ['Bin 16',             'uint16'],
-                           ['Bin 17',             'uint16'],
-                           ['Bin 18',             'uint16'],
-                           ['Bin 19',             'uint16'],
-                           ['Bin 20',             'uint16'],
-                           ['Bin 21',             'uint16'],
-                           ['Bin 22',             'uint16'],
-                           ['Bin 23',             'uint16'],
-                           ['Bin1 MToF',           'uint8'],
-                           ['Bin3 MToF',           'uint8'],
-                           ['Bin5 MToF',           'uint8'],
-                           ['Bin7 MToF',           'uint8'],
-                           ['Sampling Period' ,   'uint16'],
-                           ['SFR',                'uint16'],
-                           ['Temperature',        'uint16'],
-                           ['Relative humidity',  'uint16'],
-                           ['PM1',               'float32'],
-                           ['PM2.5',             'float32'],
-                           ['PM10',              'float32'],
-                           ['#RejectGlitch',      'uint16'],
-                           ['#RejectLongTOF',     'uint16'],
-                           ['#RejectRatio',       'uint16'],
-                           ['#RejectOutOfRange',  'uint16'],
-                           ['Fan rev count',      'uint16'],
-                           ['Laser status',       'uint16'],
-                           ['Checksum',           'uint16']]
+#[*[['Bin {}'.format(b), t] for b, t in zip(range(24), ["H"]*24)],
+_OPC_N3_HISTOGRAM_STRUCT = [['Bin 0',              'H'],
+                            ['Bin 1',              'H'],
+                            ['Bin 2',              'H'],
+                            ['Bin 3',              'H'],
+                            ['Bin 4',              'H'],
+                            ['Bin 5',              'H'],
+                            ['Bin 6',              'H'],
+                            ['Bin 7',              'H'],
+                            ['Bin 8',              'H'],
+                            ['Bin 9',              'H'],
+                            ['Bin 10',             'H'],
+                            ['Bin 11',             'H'],
+                            ['Bin 12',             'H'],
+                            ['Bin 13',             'H'],
+                            ['Bin 14',             'H'],
+                            ['Bin 15',             'H'],
+                            ['Bin 16',             'H'],
+                            ['Bin 17',             'H'],
+                            ['Bin 18',             'H'],
+                            ['Bin 19',             'H'],
+                            ['Bin 20',             'H'],
+                            ['Bin 21',             'H'],
+                            ['Bin 22',             'H'],
+                            ['Bin 23',             'H'],
+                            ['Bin1 MToF',          'B'],
+                            ['Bin3 MToF',          'B'],
+                            ['Bin5 MToF',          'B'],
+                            ['Bin7 MToF',          'B'],
+                            ['Sampling Period' ,   'H'],
+                            ['SFR',                'H'],
+                            ['Temperature',        'H'],
+                            ['Relative humidity',  'H'],
+                            ['PM1',                'f'],
+                            ['PM2.5',              'f'],
+                            ['PM10',               'f'],
+                            ['#RejectGlitch',      'H'],
+                            ['#RejectLongTOF',     'H'],
+                            ['#RejectRatio',       'H'],
+                            ['#RejectOutOfRange',  'H'],
+                            ['Fan rev count',      'H'],
+                            ['Laser status',       'H'],
+                            ['Checksum',           'H']]
 
-_OPC_R1_HISTOGRAM_STRUCT = [['Bin 0',              'uint16'],
-                           ['Bin 1',              'uint16'],
-                           ['Bin 2',              'uint16'],
-                           ['Bin 3',              'uint16'],
-                           ['Bin 4',              'uint16'],
-                           ['Bin 5',              'uint16'],
-                           ['Bin 6',              'uint16'],
-                           ['Bin 7',              'uint16'],
-                           ['Bin 8',              'uint16'],
-                           ['Bin 9',              'uint16'],
-                           ['Bin 10',             'uint16'],
-                           ['Bin 11',             'uint16'],
-                           ['Bin 12',             'uint16'],
-                           ['Bin 13',             'uint16'],
-                           ['Bin 14',             'uint16'],
-                           ['Bin 15',             'uint16'],
-                           ['Bin1 MToF',           'uint8'],
-                           ['Bin3 MToF',           'uint8'],
-                           ['Bin5 MToF',           'uint8'],
-                           ['Bin7 MToF',           'uint8'],
-                           ['SFR',               'float32'],
-                           ['Temperature',        'uint16'],
-                           ['Relative humidity',  'uint16'],
-                           ['Sampling Period' ,  'float32'],
-                           ['#RejectGlitch',       'uint8'],
-                           ['#RejectLongTOF',      'uint8'],
-                           ['PM1',               'float32'],
-                           ['PM2.5',             'float32'],
-                           ['PM10',              'float32'],
-                           ['Checksum',           'uint16']]
+_OPC_R1_HISTOGRAM_STRUCT = [['Bin 0',              'H'],
+                            ['Bin 1',              'H'],
+                            ['Bin 2',              'H'],
+                            ['Bin 3',              'H'],
+                            ['Bin 4',              'H'],
+                            ['Bin 5',              'H'],
+                            ['Bin 6',              'H'],
+                            ['Bin 7',              'H'],
+                            ['Bin 8',              'H'],
+                            ['Bin 9',              'H'],
+                            ['Bin 10',             'H'],
+                            ['Bin 11',             'H'],
+                            ['Bin 12',             'H'],
+                            ['Bin 13',             'H'],
+                            ['Bin 14',             'H'],
+                            ['Bin 15',             'H'],
+                            ['Bin1 MToF',          'B'],
+                            ['Bin3 MToF',          'B'],
+                            ['Bin5 MToF',          'B'],
+                            ['Bin7 MToF',          'B'],
+                            ['SFR',                'f'],
+                            ['Temperature',        'H'],
+                            ['Relative humidity',  'H'],
+                            ['Sampling Period' ,   'f'],
+                            ['#RejectGlitch',      'B'],
+                            ['#RejectLongTOF',     'B'],
+                            ['PM1',                'f'],
+                            ['PM2.5',              'f'],
+                            ['PM10',               'f'],
+                            ['Checksum',           'H']]
 
 
 # Particle Mass loadings struct
-_OPC_N2_PM_STRUCT =        [['PM1',               'float32'],
-                           ['PM2.5',             'float32'],
-                           ['PM10',              'float32']]
+_OPC_N2_PM_STRUCT =        [['PM1',                'f'],
+                            ['PM2.5',              'f'],
+                            ['PM10',               'f']]
 
-_OPC_N3_PM_STRUCT =        [['PM1',               'float32'],
-                           ['PM2.5',             'float32'],
-                           ['PM10',              'float32'],
-                           ['Checksum',           'uint16']]
+_OPC_N3_PM_STRUCT =        [['PM1',                'f'],
+                            ['PM2.5',              'f'],
+                            ['PM10',               'f'],
+                            ['Checksum',           'H']]
 
 _OPC_R1_PM_STRUCT = _OPC_N3_PM_STRUCT
-
-
-# Data struct encoding/decoding helper functions
-def _unpack(t, x):
-    """Helper function to convert a list of bytes as returned from an the
-    device into a number with the proper datatype. 
-
-    :param t: datatype (e.g. 'uint8', 'float32', ...)
-    """
-    if t == 'uint8':
-        return x[0]
-    elif t == 'uint16':
-        return (x[1] << 8) | x[0]
-    elif t == 'uint32':
-        r  = (x[3] << 24) | (x[2] << 16) | (x[1] << 8) | x[0]
-        return r
-    elif t == 'float32':
-        return struct.unpack('f', struct.pack('4B', *x))[0]
-    else:
-        raise ValueError
-
-def _len(t):
-    """Returns the size in bytes of a given datatype
-
-    :param t: datatype (e.g. 'uint8', 'float32')
-    """
-    if t == 'uint8':
-        return 1
-    elif t == 'uint16':
-        return 2
-    elif t == 'uint32':
-        return 4
-    elif t == 'float32':
-        return 4
-    else:
-        raise ValueError
 
 
 class _data_struct(object):
     """Helper class to manage a data sequence to be read or written
     sequentially to the OPC using SPI. Mostly caches struct size and
     dictionary keys to void unnecessary looping each time they're
-    neede.
+    needed.
 
     """
     def __init__(self, m):
         self.data_struct = m
-        self.size = self._struct_size(self.data_struct)
-        self.keys = self._keys()
-
-    def _struct_size(self, m):
-        l = 0
-        for k, t in m:
-            l += _len(t)
-        return l
-
-    def _keys(self):
-        return [k for k, t in self.data_struct]
+        self.keys = [k for k, t in self.data_struct]
+        self.fmt = '<' + ''.join([t for k, t in self.data_struct])
+        self.size = struct.calcsize(self.fmt)
 
     def unpack(self, raw_bytes):
         assert(len(raw_bytes) == self.size)
 
-        data = dict()
-        c = 0
-        for k, t in self.data_struct:
-            l = _len(t)
-            data[k] = _unpack(t, raw_bytes[c:c+l])
-            c += l
+        values = struct.unpack_from(self.fmt, raw_bytes)
 
-        return data
+        return dict(zip(self.keys, values))
 
 class _OPCError(IOError):
     pass
@@ -324,7 +277,7 @@ class _OPC(object):
             logger.warning("Waiting 5 seconds for the device to settle")
             sleep(5)
 
-        return l
+        return bytearray(l)
 
     def _write_bytes(self, cmd, l):
         """Write a sequence of bytes.
@@ -394,12 +347,12 @@ class _OPC(object):
     def info(self):
         """Returns device informations string"""
         l = self._read_bytes(_OPC_CMD_READ_INFO_STRING, 60)
-        return ''.join([chr(c) for c in l])
+        return l.decode()
 
     def serial(self):
         """Returns device serial"""
         l = self._read_bytes(_OPC_CMD_READ_SERIAL_STRING, 60)
-        return ''.join([chr(c) for c in l])
+        return l.decode()
 
     def fwversion(self):
         """Return device firmware version"""
