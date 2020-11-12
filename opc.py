@@ -278,7 +278,8 @@ class _OPC(object):
             sleep(5)
 
         l = bytearray(l)
-        logger.debug('received {} bytes: {}'.format(sz, l))
+        if len(l) < sz:
+            logger.error('Something failed while reading byte sequence, expected size: {}, received: {}'.format(sz, len(l)))
 
         return l
 
@@ -310,6 +311,11 @@ class _OPC(object):
         :returns: dictionary filled with the struct data
         """
         raw_bytes = self._read_bytes(cmd, m.size)
+
+        if len(raw_bytes) < m.size:
+            logger.error('Bad histogram data, size mismatch')
+            return None
+
         data = m.unpack(raw_bytes)
 
         if 'Checksum' in m.keys:
