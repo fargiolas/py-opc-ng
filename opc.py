@@ -160,7 +160,6 @@ _OPC_R1_HISTOGRAM_STRUCT = [['Bin 0',              'H'],
                             ['PM10',               'f'],
                             ['Checksum',           'H']]
 
-
 # Particle Mass loadings struct
 _OPC_N2_PM_STRUCT =        [['PM1',                'f'],
                             ['PM2.5',              'f'],
@@ -172,6 +171,25 @@ _OPC_N3_PM_STRUCT =        [['PM1',                'f'],
                             ['Checksum',           'H']]
 
 _OPC_R1_PM_STRUCT = _OPC_N3_PM_STRUCT
+
+
+# Config variables
+_OPC_N3_CONFIG_STRUCT = [*[['BB{}'.format(b), t]  for b, t in zip(range(25), ["H"]*25)],
+                         *[['BBD{}'.format(b), t] for b, t in zip(range(25), ["H"]*25)],
+                         *[['BW{}'.format(b), t]  for b, t in zip(range(24), ["H"]*24)],
+                         ['M_A', 'H'],
+                         ['M_B', 'H'],
+                         ['M_C', 'H'],
+                         ['MaxTOF', 'H'],
+                         ['AMSamplingIntervalCount', 'H'],
+                         ['AMIdleIntervalCount', 'H'],
+                         ['AMMaxDataArraysInFile', 'H'],
+                         ['AMOnlySavePMData', 'B'],
+                         ['AMFanOnInIdle', 'B'],
+                         ['AMLaserOnInIdle', 'B'],
+                         ['TOF to SFR factor', 'B'],
+                         ['PVP', 'B'],
+                         ['BinWeightingIndex', 'B']]
 
 
 class _data_struct(object):
@@ -432,6 +450,7 @@ class OPCN3(_OPC):
         self.histogram_struct = _data_struct(_OPC_N3_HISTOGRAM_STRUCT)
         self.popt_struct = _data_struct(_OPC_N3_POPT_STRUCT)
         self.pm_struct = _data_struct(_OPC_N3_PM_STRUCT)
+        self.config_struct = _data_struct(_OPC_N3_CONFIG_STRUCT)
 
     def power_state(self):
         """Report peripherals and digital pots state.
@@ -505,6 +524,9 @@ class OPCN3(_OPC):
         hist = self._convert_mtof(hist)
 
         return hist
+
+    def config(self):
+        return self._read_struct(_OPC_CMD_READ_CONFIG, self.config_struct)
 
 class OPCR1(_OPC):
     """OPC-R1
