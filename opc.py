@@ -9,7 +9,7 @@ except:
     class USBISSError(BaseException):
         pass
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger(__name__)
 
 # Alphasense OPC commands and flags
@@ -211,7 +211,7 @@ class _OPC(object):
         :param interval: seconds to sleep after sending a command (default: 10us)
         """
         r = self.spi.xfer([cmd])[0]
-        logger.debug('command: 0x{:02X}, response: 0x{:02X} (\'{}\')'.format(cmd, r, chr(r)))
+        logger.debug('command: 0x{:02X}, response: 0x{:02X},  sleep: {} s'.format(cmd, r, interval))
         sleep(interval)
         return r
 
@@ -277,7 +277,10 @@ class _OPC(object):
             logger.warning("Waiting 5 seconds for the device to settle")
             sleep(5)
 
-        return bytearray(l)
+        l = bytearray(l)
+        logger.debug('received {} bytes: {}'.format(sz, l))
+
+        return l
 
     def _write_bytes(self, cmd, l):
         """Write a sequence of bytes.
