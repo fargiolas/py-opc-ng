@@ -515,7 +515,7 @@ class OPCN3(_OPC):
     def _histogram_post_process(self, hist):
         """Convert histogram raw data into proper measurements."""
         hist['Temperature'] = self._convert_temperature(hist['Temperature'])
-        hist['Relative humidity'] = self._convert_temperature(hist['Relative humidity'])
+        hist['Relative humidity'] = self._convert_humidity(hist['Relative humidity'])
 
         hist['Sampling Period'] = hist['Sampling Period'] / 100.
         hist['SFR'] = hist['SFR'] / 100.
@@ -562,7 +562,7 @@ class OPCR1(_OPC):
     def _histogram_post_process(self, hist):
         """Convert histogram raw data into proper measurements."""
         hist['Temperature'] = self._convert_temperature(hist['Temperature'])
-        hist['Relative humidity'] = self._convert_temperature(hist['Relative humidity'])
+        hist['Relative humidity'] = self._convert_humidity(hist['Relative humidity'])
 
         hist = self._convert_hist_to_count_per_ml(hist)
         hist = self._convert_mtof(hist)
