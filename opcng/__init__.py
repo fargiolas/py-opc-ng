@@ -44,20 +44,20 @@ _OPC_N3_POPT_GAIN_TOGGLE  = 4
 
 # N3 and N2 DAC and power state ("digital pot"), queries with 0x13. R1
 # doesn't seem to support this command.
-_OPC_N3_POPT_STRUCT =      [['FanON',              'B'],
+_OPC_N3_POPT_MODEL =      [['FanON',              'B'],
                             ['LaserON',            'B'],
                             ['FanDACVal',          'B'],
                             ['LaserDACVal',        'B'],
                             ['LaserSwitch',        'B'],
                             ['GainToggle',         'B']]
 
-_OPC_N2_POPT_STRUCT =      [['FanON',              'B'],
+_OPC_N2_POPT_MODEL =      [['FanON',              'B'],
                             ['LaserON',            'B'],
                             ['FanDACVal',          'B'],
                             ['LaserDACVal',        'B']]
 
 # Histogram structs
-_OPC_N2_HISTOGRAM_STRUCT = [['Bin 0',              'H'],
+_OPC_N2_HISTOGRAM_MODEL = [['Bin 0',              'H'],
                             ['Bin 1',              'H'],
                             ['Bin 2',              'H'],
                             ['Bin 3',              'H'],
@@ -86,7 +86,7 @@ _OPC_N2_HISTOGRAM_STRUCT = [['Bin 0',              'H'],
                             ['PM10',               'f']]
 
 #[*[['Bin {}'.format(b), t] for b, t in zip(range(24), ["H"]*24)],
-_OPC_N3_HISTOGRAM_STRUCT = [['Bin 0',              'H'],
+_OPC_N3_HISTOGRAM_MODEL = [['Bin 0',              'H'],
                             ['Bin 1',              'H'],
                             ['Bin 2',              'H'],
                             ['Bin 3',              'H'],
@@ -129,7 +129,7 @@ _OPC_N3_HISTOGRAM_STRUCT = [['Bin 0',              'H'],
                             ['Laser status',       'H'],
                             ['Checksum',           'H']]
 
-_OPC_R1_HISTOGRAM_STRUCT = [['Bin 0',              'H'],
+_OPC_R1_HISTOGRAM_MODEL = [['Bin 0',              'H'],
                             ['Bin 1',              'H'],
                             ['Bin 2',              'H'],
                             ['Bin 3',              'H'],
@@ -161,20 +161,20 @@ _OPC_R1_HISTOGRAM_STRUCT = [['Bin 0',              'H'],
                             ['Checksum',           'H']]
 
 # Particle Mass loadings struct
-_OPC_N2_PM_STRUCT =        [['PM1',                'f'],
+_OPC_N2_PM_MODEL =        [['PM1',                'f'],
                             ['PM2.5',              'f'],
                             ['PM10',               'f']]
 
-_OPC_N3_PM_STRUCT =        [['PM1',                'f'],
+_OPC_N3_PM_MODEL =        [['PM1',                'f'],
                             ['PM2.5',              'f'],
                             ['PM10',               'f'],
                             ['Checksum',           'H']]
 
-_OPC_R1_PM_STRUCT = _OPC_N3_PM_STRUCT
+_OPC_R1_PM_MODEL = _OPC_N3_PM_MODEL
 
 
 # Config variables
-_OPC_N3_CONFIG_STRUCT = [*[['BB{}'.format(b), t]  for b, t in zip(range(25), ["H"]*25)],
+_OPC_N3_CONFIG_MODEL = [*[['BB{}'.format(b), t]  for b, t in zip(range(25), ["H"]*25)],
                          *[['BBD{}'.format(b), t] for b, t in zip(range(25), ["H"]*25)],
                          *[['BW{}'.format(b), t]  for b, t in zip(range(24), ["H"]*24)],
                          ['M_A', 'H'],
@@ -192,17 +192,15 @@ _OPC_N3_CONFIG_STRUCT = [*[['BB{}'.format(b), t]  for b, t in zip(range(25), ["H
                          ['BinWeightingIndex', 'B']]
 
 
-class _data_struct(object):
+class _data_model(object):
     """Helper class to manage a data sequence to be read or written
-    sequentially to the OPC using SPI. Mostly caches struct size and
-    dictionary keys to void unnecessary looping each time they're
-    needed.
-
+    sequentially to the OPC using SPI. Mostly caches struct size,
+    fields and complete format string.
     """
-    def __init__(self, m):
-        self.data_struct = m
-        self.keys = [k for k, t in self.data_struct]
-        self.fmt = '<' + ''.join([t for k, t in self.data_struct])
+    def __init__(self, model):
+        self.model = model
+        self.fields = [field for field, fmt in self.model]
+        self.fmt = '<' + ''.join([fmt for field, fmt in self.model])
         self.size = struct.calcsize(self.fmt)
 
     def unpack(self, raw_bytes):
@@ -210,10 +208,12 @@ class _data_struct(object):
 
         values = struct.unpack_from(self.fmt, raw_bytes)
 
-        return dict(zip(self.keys, values))
+        return dict(zip(self.fields, values))
+
 
 class _OPCError(IOError):
     pass
+
 
 class _OPC(object):
     """OPC Base class, holds common logic amongst different device
@@ -282,11 +282,11 @@ class _OPC(object):
         :param cmd: command opcode
         :param sz: number of bytes to read
         """
-        l = []
+        buf = []
         try:
             self._send_command_and_wait(cmd)
             for i in range(sz):
-                l += [self._send_command(cmd)]
+                buf += [self._send_command(cmd)]
 
         except _OPCError as e:
             logger.error("Error while reading bytes from the device: {}".format(e))
@@ -295,21 +295,21 @@ class _OPC(object):
             logger.warning("Waiting 5 seconds for the device to settle")
             sleep(5)
 
-        l = bytearray(l)
-        if len(l) < sz:
+        result = bytearray(buf)
+        if len(result) < sz:
             logger.error('Something failed while reading byte sequence, expected size: {}, received: {}'.format(sz, len(l)))
 
-        return l
+        return result
 
-    def _write_bytes(self, cmd, l):
+    def _write_bytes(self, cmd, buf):
         """Write a sequence of bytes.
 
         :param cmd: command opcode
-        :param l: list of bytes to send
+        :param buf: list of bytes to send
         """
         try:
             self._send_command_and_wait(cmd)
-            for c in l:
+            for c in buf:
                 self._send_command(c)
         except _OPCError as e:
             logger.error("Error while reading bytes from the device: {}".format(e))
@@ -318,7 +318,7 @@ class _OPC(object):
             logger.warning("Waiting 5 seconds for the device to settle")
             sleep(5)
 
-    def _read_struct(self, cmd, m):
+    def _read_struct(self, cmd, model):
         """Read a complex data structure (e.g. an histogram) from the
         device. If appliable calculate data checksum and return None if it
         fails.
@@ -328,15 +328,15 @@ class _OPC(object):
 
         :returns: dictionary filled with the struct data
         """
-        raw_bytes = self._read_bytes(cmd, m.size)
+        raw_bytes = self._read_bytes(cmd, model.size)
 
-        if len(raw_bytes) < m.size:
+        if len(raw_bytes) < model.size:
             logger.error('Bad histogram data, size mismatch')
             return None
 
-        data = m.unpack(raw_bytes)
+        data = model.unpack(raw_bytes)
 
-        if 'Checksum' in m.keys:
+        if 'Checksum' in model.fields:
             crc = self._checksum(data, raw_bytes)
             if data['Checksum'] != crc:
                 logger.warning('Bad histogram data, invalid checksum')
@@ -358,17 +358,17 @@ class _OPC(object):
         """
         ml_per_period = hist['SFR'] * hist['Sampling Period']
         if ml_per_period > 0:
-            for k in self.histogram_struct.keys:
-                if 'Bin ' in k:
-                    hist[k] = hist[k] / ml_per_period
+            for field in self._histogram_model.fields:
+                if 'Bin ' in field:
+                    hist[field] = hist[field] / ml_per_period
 
         return hist
 
     def _convert_mtof(self, hist):
         """Convert MToF from 1/3us units. Changes MToF bins in-place"""
-        for k in self.histogram_struct.keys:
-            if 'MToF' in k:
-                hist[k] = hist[k] / 3.
+        for field in self._histogram_model.fields:
+            if 'MToF' in field:
+                hist[field] = hist[field] / 3.
         return hist
 
     def info(self):
@@ -426,7 +426,7 @@ class _OPC(object):
 
         :returns: a dictionary of histogram bins and auxiliary data
         """
-        data = self._read_struct(_OPC_CMD_READ_HISTOGRAM, self.histogram_struct)
+        data = self._read_struct(_OPC_CMD_READ_HISTOGRAM, self._histogram_model)
         if raw or (data is None):
             return data
         else:
@@ -437,7 +437,8 @@ class _OPC(object):
 
         :returns: a dictionary containing PM1, PM2.5 and PM10 data.
         """
-        return self._read_struct(_OPC_CMD_READ_PM, self.pm_struct)
+        return self._read_struct(_OPC_CMD_READ_PM, self._pm_model)
+
 
 class OPCN3(_OPC):
     """OPC-N3
@@ -447,10 +448,10 @@ class OPCN3(_OPC):
     def __init__(self, spi):
         super().__init__(spi)
 
-        self.histogram_struct = _data_struct(_OPC_N3_HISTOGRAM_STRUCT)
-        self.popt_struct = _data_struct(_OPC_N3_POPT_STRUCT)
-        self.pm_struct = _data_struct(_OPC_N3_PM_STRUCT)
-        self.config_struct = _data_struct(_OPC_N3_CONFIG_STRUCT)
+        self._histogram_model = _data_model(_OPC_N3_HISTOGRAM_MODEL)
+        self._popt_model = _data_model(_OPC_N3_POPT_MODEL)
+        self._pm_model = _data_model(_OPC_N3_PM_MODEL)
+        self._config_model = _data_model(_OPC_N3_CONFIG_MODEL)
 
     def power_state(self):
         """Report peripherals and digital pots state.
@@ -467,7 +468,7 @@ class OPCN3(_OPC):
          'LaserSwitch': 0,
          'GainToggle': 3}
         """
-        return self._read_struct(_OPC_CMD_READ_POWER_STATE, self.popt_struct)
+        return self._read_struct(_OPC_CMD_READ_POWER_STATE, self._popt_model)
 
     # Turn peripherals on/off. POPT flag, left shifted by 1 selects
     # the proper digital pot/switch, LSB sets its state, 0 for off, 1
@@ -526,7 +527,7 @@ class OPCN3(_OPC):
         return hist
 
     def config(self):
-        return self._read_struct(_OPC_CMD_READ_CONFIG, self.config_struct)
+        return self._read_struct(_OPC_CMD_READ_CONFIG, self._config_model)
 
 class OPCR1(_OPC):
     """OPC-R1
@@ -536,8 +537,8 @@ class OPCR1(_OPC):
     def __init__(self, spi):
         super().__init__(spi)
 
-        self.histogram_struct = _data_struct(_OPC_R1_HISTOGRAM_STRUCT)
-        self.pm_struct = _data_struct(_OPC_R1_PM_STRUCT)
+        self._histogram_model = _data_model(_OPC_R1_HISTOGRAM_MODEL)
+        self._pm_model = _data_model(_OPC_R1_PM_MODEL)
 
     def on(self):
         """Power on peripherals (laser and fan). Wait at least 600ms for the
@@ -592,9 +593,9 @@ class OPCN2(_OPC):
     def __init__(self, spi):
         super().__init__(spi)
 
-        self.histogram_struct = _data_struct(_OPC_N2_HISTOGRAM_STRUCT)
-        self.popt_struct = _data_struct(_OPC_N2_POPT_STRUCT)
-        self.pm_struct = _data_struct(_OPC_N2_PM_STRUCT)
+        self._histogram_model = _data_model(_OPC_N2_HISTOGRAM_MODEL)
+        self._popt_model = _data_model(_OPC_N2_POPT_MODEL)
+        self._pm_model = _data_model(_OPC_N2_PM_MODEL)
 
     def on(self):
         """Power on peripherals (laser and fan). Wait at least 600ms for the
@@ -618,7 +619,7 @@ class OPCN2(_OPC):
         >>> o.power_state()
         {'FanON': 1, 'LaserON': 1, 'FanDACVal': 255, 'LaserDACVal': 164}
         """
-        return self._read_struct(_OPC_CMD_READ_POWER_STATE, self.popt_struct)
+        return self._read_struct(_OPC_CMD_READ_POWER_STATE, self._popt_model)
 
     def _checksum(self, data, raw_bytes):
         """Checksum calculation for OPC-N2. Least significant 16bits of
