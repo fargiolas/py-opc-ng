@@ -5,7 +5,7 @@ import logging
 
 try:
     from usbiss.usbiss import USBISSError
-except:
+except ImportError:
     class USBISSError(BaseException):
         pass
 
