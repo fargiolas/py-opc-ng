@@ -569,6 +569,21 @@ class OPCR1(_OPC):
 
         return hist
 
+
+class OPCR2(OPCR1):
+    def pm(self):
+        major, minor = super().fwversion()
+        if (major <= 2) and (minor < 82):
+            logger.warning('Querying PM from full histogram.')
+            logger.warning('READ_PM command does not work on firmwares before 2.82.')
+            logger.warning('Please consider a firmware upgrade.')
+            logger.warning('Contact Alphasense for more info.')
+            hist = super().histogram()
+            return {k: v for k, v in hist.items() if k in ["PM1", "PM2.5", "PM10"]}
+        else:
+            return super().pm()
+
+
 class OPCN2(_OPC):
     """Experimental OPC-N2 support, only tested with firmware 18
 
@@ -647,6 +662,8 @@ def detect(spi):
         o = OPCN3(spi)
     elif "OPC-R1" in info:
         o = OPCR1(spi)
+    elif "OPC-R2" in info:
+        o = OPCR2(spi)
     elif "OPC-N2" in info:
         o = OPCN2(spi)
     else:
