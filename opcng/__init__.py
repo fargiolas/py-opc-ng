@@ -12,11 +12,13 @@ except ImportError:
 logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger(__name__)
 
+
+#
 # Alphasense OPC commands and flags
+#
 _OPC_READY = 0xF3
 _OPC_BUSY  = 0x31
-
-# Most opcodes are shared amongst the various device versions
+# Most opcodes are shared among different device versions
 _OPC_CMD_WRITE_POWER_STATE   = 0x03
 _OPC_CMD_READ_POWER_STATE    = 0x13
 _OPC_CMD_READ_INFO_STRING    = 0x3F
@@ -34,12 +36,12 @@ _OPC_N3_POPT_LASER_SWITCH = 3
 _OPC_N3_POPT_GAIN_TOGGLE  = 4
 
 # Most device queries return a list of bytes that must be
-# decoded. Each device (N2, N3, R1) return a specific set of data,
+# decoded. Each device (N2, N3, R1) returns a specific set of data,
 # differing in size, ordering and data types.
 
 # The following lists define how this data is structured, both for
 # reading (decoding) and for writing (encoding) data to an OPC device.
-# Each struct definition is a list of (key, fmt) pairs, with fmt in
+# Each model definition is a list of (field, fmt) pairs, with fmt in
 # python struct notation
 
 # N3 and N2 DAC and power state ("digital pot"), queries with 0x13. R1
@@ -79,13 +81,13 @@ _OPC_N2_HISTOGRAM_MODEL = [['Bin 0',              'H'],
                            ['Bin7 MToF',          'B'],
                            ['SFR',                'f'],
                            ['Temperature',        'L'],
-                           ['Sampling Period' ,   'f'],
+                           ['Sampling Period',    'f'],
                            ['Checksum',           'H'],
                            ['PM1',                'f'],
                            ['PM2.5',              'f'],
                            ['PM10',               'f']]
 
-#[*[['Bin {}'.format(b), t] for b, t in zip(range(24), ["H"]*24)],
+# [*[['Bin {}'.format(b), t] for b, t in zip(range(24), ["H"]*24)],
 _OPC_N3_HISTOGRAM_MODEL = [['Bin 0',              'H'],
                            ['Bin 1',              'H'],
                            ['Bin 2',              'H'],
@@ -160,7 +162,7 @@ _OPC_R1_HISTOGRAM_MODEL = [['Bin 0',              'H'],
                            ['PM10',               'f'],
                            ['Checksum',           'H']]
 
-# Particle Mass loadings struct
+# Particle Mass loadings models, no checksum for N2
 _OPC_N2_PM_MODEL =        [['PM1',                'f'],
                            ['PM2.5',              'f'],
                            ['PM10',               'f']]
@@ -174,9 +176,9 @@ _OPC_R1_PM_MODEL = _OPC_N3_PM_MODEL
 
 
 # Config variables
-_OPC_N3_CONFIG_MODEL =    [*[['BB{}'.format(b), t]  for b, t in zip(range(25), ["H"]*25)],
-                           *[['BBD{}'.format(b), t] for b, t in zip(range(25), ["H"]*25)],
-                           *[['BW{}'.format(b), t]  for b, t in zip(range(24), ["H"]*24)],
+_OPC_N3_CONFIG_MODEL =    [*[['BB{}'.format(b), t] for b, t in zip(range(25), ["H"] * 25)],
+                           *[['BBD{}'.format(b), t] for b, t in zip(range(25), ["H"] * 25)],
+                           *[['BW{}'.format(b), t] for b, t in zip(range(24), ["H"] * 24)],
                            ['M_A',                'H'],
                            ['M_B',                'H'],
                            ['M_C',                'H'],
@@ -216,7 +218,7 @@ class _OPCError(IOError):
 
 
 class _OPC(object):
-    """OPC Base class, holds common logic amongst different device
+    """OPC Base class, handle common logic among different devices.
 
     :param spi: a SPI device as returned by SpiDev or USBiss
     """
@@ -224,7 +226,7 @@ class _OPC(object):
         self.spi = spi
 
     def _send_command(self, cmd, interval=10e-6):
-        """Sends a single command through the SPI bus.
+        """Send a single command through the SPI bus.
         :param cmd: command opcode (single byte)
         :param interval: seconds to sleep after sending a command (default: 10us)
         """
@@ -346,15 +348,16 @@ class _OPC(object):
 
     def _convert_temperature(self, x):
         """Convert temperature to °C"""
-        return -45. + 175. * x / (float(1<<16) - 1.)
+        return -45. + 175. * x / (float(1 << 16) - 1.)
 
     def _convert_humidity(self, x):
         """Convert relative humidity to percentage"""
-        return 100. * x / (float(1<<16) - 1.)
+        return 100. * x / (float(1 << 16) - 1.)
 
     def _convert_hist_to_count_per_ml(self, hist):
         """Convert counts/s to counts/ml using flow rate and sampling period.
-        Changes histogram bins in-place.
+
+        Modifies histogram bins in-place.
         """
         ml_per_period = hist['SFR'] * hist['Sampling Period']
         if ml_per_period > 0:
@@ -365,24 +368,26 @@ class _OPC(object):
         return hist
 
     def _convert_mtof(self, hist):
-        """Convert MToF from 1/3us units. Changes MToF bins in-place"""
+        """Convert MToF from 1/3us units.
+
+        Modifies MToF bins in-place"""
         for field in self._histogram_model.fields:
             if 'MToF' in field:
                 hist[field] = hist[field] / 3.
         return hist
 
     def info(self):
-        """Returns device informations string"""
-        l = self._read_bytes(_OPC_CMD_READ_INFO_STRING, 60)
-        return l.decode()
+        """Query device information"""
+        buf = self._read_bytes(_OPC_CMD_READ_INFO_STRING, 60)
+        return buf.decode()
 
     def serial(self):
-        """Returns device serial"""
-        l = self._read_bytes(_OPC_CMD_READ_SERIAL_STRING, 60)
-        return l.decode()
+        """Query device serial"""
+        buf = self._read_bytes(_OPC_CMD_READ_SERIAL_STRING, 60)
+        return buf.decode()
 
     def fwversion(self):
-        """Return device firmware version"""
+        """Query device firmware version"""
         major, minor = self._read_bytes(_OPC_CMD_READ_FW_VERSION, 2)
         return major, minor
 
@@ -391,7 +396,7 @@ class _OPC(object):
         try:
             self._send_command_and_wait(_OPC_CMD_CHECK_STATUS)
             return True
-        except:
+        except BaseException:
             return False
 
     def _checksum(self, data, raw_bytes):
@@ -474,40 +479,45 @@ class OPCN3(_OPC):
     # the proper digital pot/switch, LSB sets its state, 0 for off, 1
     # for on.
     def fan_off(self):
-        """Power off fan"""
+        """Power off fan."""
         self._write_bytes(_OPC_CMD_WRITE_POWER_STATE, [_OPC_N3_POPT_FAN_POT << 1 | 0])
 
     def fan_on(self):
-        """Power on fan. Wait at least 600ms for the fan speed to settle and
-        power absorption peak to pass before sending more commands.
+        """Power on fan.
+
+        Wait at least 600ms for the fan speed to settle and power
+        absorption peak to pass before sending more commands.
 
         """
         self._write_bytes(_OPC_CMD_WRITE_POWER_STATE, [_OPC_N3_POPT_FAN_POT << 1 | 1])
 
     def laser_off(self):
-        """Power off laser"""
+        """Power off laser."""
         self._write_bytes(_OPC_CMD_WRITE_POWER_STATE, [_OPC_N3_POPT_LASER_SWITCH << 1 | 0])
 
     def laser_on(self):
-        """Power on laser"""
+        """Power on laser."""
         self._write_bytes(_OPC_CMD_WRITE_POWER_STATE, [_OPC_N3_POPT_LASER_SWITCH << 1 | 1])
 
     def on(self):
-        """Power on peripherals (laser and fan). Wait at least 600ms for the
-        fan speed to settle and power absorption peak to pass before
-        sending more commands.
+        """Power on peripherals (both laser and fan).
+
+        Wait at least 600ms for the fan speed to settle and power
+        absorption peak to pass before sending more commands.
 
         """
         self.laser_on()
         self.fan_on()
 
     def off(self):
-        """Power off peripherals (laser and fan)."""
+        """Power off peripherals (both laser and fan)."""
         self.laser_off()
         self.fan_off()
 
     def reset(self):
-        """Reset device. Not clear what it does, poorly documented in
+        """Reset device.
+
+        Not so clear what it really does, poorly documented in
         manufacturer docs.
 
         """
@@ -527,6 +537,7 @@ class OPCN3(_OPC):
         return hist
 
     def config(self):
+        """Query configuration variables."""
         return self._read_struct(_OPC_CMD_READ_CONFIG, self._config_model)
 
 
@@ -542,20 +553,23 @@ class OPCR1(_OPC):
         self._pm_model = _data_model(_OPC_R1_PM_MODEL)
 
     def on(self):
-        """Power on peripherals (laser and fan). Wait at least 600ms for the
-        fan speed to settle and power absorption peak to pass before
-        sending more commands.
+        """Power on peripherals (both laser and fan).
+
+        Wait at least 600ms for the fan speed to settle and power
+        absorption peak to pass before sending more commands.
 
         """
         self._write_bytes(_OPC_CMD_WRITE_POWER_STATE, [0x03])
 
     def off(self):
-        """Power off peripherals (laser and fan)."""
+        """Power off peripherals (both laser and fan)."""
 
         self._write_bytes(_OPC_CMD_WRITE_POWER_STATE, [0x00])
 
     def reset(self):
-        """Reset device. Not clear what it does, poorly documented in
+        """Reset device.
+
+        Not so clear what it really does, poorly documented in
         manufacturer docs.
 
         """
@@ -574,6 +588,7 @@ class OPCR1(_OPC):
 
 class OPCR2(OPCR1):
     def pm(self):
+        """Query particle mass readings."""
         major, minor = super().fwversion()
         if (major <= 2) and (minor < 82):
             logger.warning('Querying PM from full histogram.')
@@ -587,7 +602,9 @@ class OPCR2(OPCR1):
 
 
 class OPCN2(_OPC):
-    """Experimental OPC-N2 support, only tested with firmware 18
+    """OPC-N2
+
+    Experimental support, only tested with firmware 18
 
     :param spi: a SPI device as returned by SpiDev or USBiss
     """
@@ -599,9 +616,10 @@ class OPCN2(_OPC):
         self._pm_model = _data_model(_OPC_N2_PM_MODEL)
 
     def on(self):
-        """Power on peripherals (laser and fan). Wait at least 600ms for the
-        fan speed to settle and power absorption peak to pass before
-        sending more commands.
+        """Power on peripherals (laser and fan).
+
+        Wait at least 600ms for the fan speed to settle and power absorption
+        peak to pass before sending more commands.
 
         """
         self._write_bytes(_OPC_CMD_WRITE_POWER_STATE, [0x00])
@@ -623,9 +641,9 @@ class OPCN2(_OPC):
         return self._read_struct(_OPC_CMD_READ_POWER_STATE, self._popt_model)
 
     def _checksum(self, data, raw_bytes):
-        """Checksum calculation for OPC-N2. Least significant 16bits of
-        histogram bin sum.
+        """Checksum calculation for OPC-N2.
 
+        Return least significant 16bits of histogram bin sum.
         """
         bins = [data[k] for k in data.keys() if 'Bin ' in k]
         binsum = 0
@@ -652,11 +670,11 @@ class OPCN2(_OPC):
 
 
 def detect(spi):
-    """Try to autodetect a device from info string
+    """Try to autodetect a device parsing information string
 
     :param spi: SPI device instance as returned by SpiDev or USBiss
 
-    :returns: an OPC(N3,N2,R1) instance, check type() to see if the device was properly detected.
+    :returns: an OPC_(N3,N2,R1,R2) instance, check type() to see if the device was properly detected.
     """
     o = _OPC(spi)
     info = o.info()
