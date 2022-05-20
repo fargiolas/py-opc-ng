@@ -29,10 +29,10 @@ Requirements
 
 The devices work with SPI interface. You can either connect them
 directly to a SPI bus using
-[`py-spidev`](https://github.com/doceme/py-spidev) (e.g. with the GPIO
+`py-spidev <https://github.com/doceme/py-spidev>`_ (e.g. with the GPIO
 pins of a Raspberry Pi) or use a SPI to USB device, like the one
 Alphasense provides, using the
-[`pyusbiss`](https://github.com/dancingquanta/pyusbiss) library.
+`pyusbiss <https://github.com/dancingquanta/pyusbiss>`_ library.
 
 Examples
 ========
