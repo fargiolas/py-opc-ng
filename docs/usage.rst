@@ -9,9 +9,12 @@ operations: turning on and off the device and the internal
 peripherals, querying device information, querying histograms and
 particle mass loadings readings.
 
-Feedback, patches and pull requests to extend the module beyond this
-basic functionality are more than welcome.
+Feedback, `bug reports`_ and `pull requests`_ to extend the module
+beyond this basic functionality are more than welcome. Or just drop me
+an email at filippo.argiolas@gmail.com if you need help or have any feedback.
 
+.. _bug reports: https://github.com/fargiolas/py-opc-ng/issues
+.. _pull requests: https://github.com/fargiolas/py-opc-ng/pulls
 
 Installation
 ============
