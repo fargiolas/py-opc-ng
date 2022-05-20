@@ -17,6 +17,10 @@ pins of a RaspberryPi) or use a SPI to USB device, like the one
 Alphasense provides, using the
 [`pyusbiss`](https://github.com/dancingquanta/pyusbiss) library.
 
+## Getting help
+
+You can find full documentation, including API references, at http://py-opc-ng.readthedocs.io/
+
 ## Usage
 
 With a direct SPI connection:
