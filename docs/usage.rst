@@ -69,6 +69,7 @@ Reading PM data
 
 Basic steps to operate the device and read some measurement::
 
+   from time import sleep
    import opcng as opc
 
    # autodetect device
@@ -77,13 +78,91 @@ Basic steps to operate the device and read some measurement::
    # power on fan and laser
    dev.on()
 
+   sleep(1)
+
    for i in range(10):
        # query particle mass readings
-       sleep(1)
        pm = dev.pm()
 
        for k, v in pm.items():
            print(f'{k}: {v}')
 
+       sleep(1)
+
    # power off fan and laser
    dev.off()
+
+
+Querying device information
+---------------------------
+
+Here's an example session where we read both metadata and histogram
+data from one of our OPC-N3:
+
+>>> import opcng as opc
+>>> dev = opc.OPCN3(spi)
+>>> dev.info()        # query information string
+'OPC-N3 Iss1.1 FirmwareVer=1.17a...........................BS'
+>>> dev.fwversion()   # firmware version
+(1, 17)
+>>> dev.serial()      # serial number
+'OPC-N3 177700019                                            '
+>>> dev.power_state() # power state (only available for N2 and N3)
+{ 'FanON': 0,
+  'LaserON': 1,
+  'FanDACVal': 255,
+  'LaserDACVal': 140,
+  'LaserSwitch': 0,
+  'GainToggle': 3 }
+>>> dev.on()
+>>> dev.power_state() # power state after turning it on
+{ 'FanON': 1,
+  'LaserON': 1,
+  'FanDACVal': 255,
+  'LaserDACVal': 140,
+  'LaserSwitch': 1,
+  'GainToggle': 3 }
+>>> dev.histogram()   # full histogram data
+{ 'Bin 0': 1.883357398455647,
+  'Bin 1': 0.4185238663234771,
+  'Bin 2': 0.20926193316173855,
+  'Bin 3': 0.0,
+  'Bin 4': 0.0,
+  'Bin 5': 0.20926193316173855,
+  'Bin 6': 0.0,
+  'Bin 7': 0.0,
+  'Bin 8': 0.0,
+  'Bin 9': 0.0,
+  'Bin 10': 0.0,
+  'Bin 11': 0.0,
+  'Bin 12': 0.0,
+  'Bin 13': 0.0,
+  'Bin 14': 0.0,
+  'Bin 15': 0.0,
+  'Bin 16': 0.0,
+  'Bin 17': 0.0,
+  'Bin 18': 0.0,
+  'Bin 19': 0.0,
+  'Bin 20': 0.0,
+  'Bin 21': 0.0,
+  'Bin 22': 0.0,
+  'Bin 23': 0.0,
+  'Bin1 MToF': 5.0,
+  'Bin3 MToF': 0.0,
+  'Bin5 MToF': 10.666666666666666,
+  'Bin7 MToF': 0.0,
+  'Sampling Period': 0.51,
+  'SFR': 9.37,
+  'Temperature': 31.22453650720989,
+  'Relative humidity': 40.822461280231934,
+  'PM1': 0.29056867957115173,
+  'PM2.5': 1.235719919204712,
+  'PM10': 1.6337664127349854,
+  '#RejectGlitch': 9,
+  '#RejectLongTOF': 0,
+  '#RejectRatio': 2335,
+  '#RejectOutOfRange': 3,
+  'Fan rev count': 0,
+  'Laser status': 613,
+  'Checksum': 35040 }
+
