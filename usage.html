@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Introduction &mdash; py-opc-ng 0.0.1 documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="py-opc-ng package" href="modules.html" />
+    <link rel="prev" title="Indices and tables" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> py-opc-ng
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="#installation">Installation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#requirements">Requirements</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="#examples">Examples</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#opening-a-spi-channel">Opening a SPI channel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#reading-pm-data">Reading PM data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#querying-device-information">Querying device information</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="modules.html">py-opc-ng package</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">py-opc-ng</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+      <li>Introduction</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/usage.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="introduction">
+<h1>Introduction<a class="headerlink" href="#introduction" title="Permalink to this headline"></a></h1>
+<p><strong>py-opc-ng</strong> is a small Python module to drive Alphasense Optical Particle Counters.</p>
+<p>We currently support OPC-N2, OPC-N3, OPC-R1 and OPC-R2. The library
+doesn’t aim to be feature complete but provides support for most comon
+operations: turning on and off the device and the internal
+peripherals, querying device information, querying histograms and
+particle mass loadings readings.</p>
+<p>Feedback, <a class="reference external" href="https://github.com/fargiolas/py-opc-ng/issues">bug reports</a> and <a class="reference external" href="https://github.com/fargiolas/py-opc-ng/pulls">pull requests</a> to extend the module
+beyond this basic functionality are more than welcome. Or just drop me
+an email at <a class="reference external" href="mailto:filippo&#46;argiolas&#37;&#52;&#48;gmail&#46;com">filippo<span>&#46;</span>argiolas<span>&#64;</span>gmail<span>&#46;</span>com</a> if you need help or have any feedback.</p>
+</section>
+<section id="installation">
+<h1>Installation<a class="headerlink" href="#installation" title="Permalink to this headline"></a></h1>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ pip install py-opc-ng
+</pre></div>
+</div>
+<section id="requirements">
+<h2>Requirements<a class="headerlink" href="#requirements" title="Permalink to this headline"></a></h2>
+<p>The devices work with SPI interface. You can either connect them
+directly to a SPI bus using
+<a class="reference external" href="https://github.com/doceme/py-spidev">py-spidev</a> (e.g. with the GPIO
+pins of a Raspberry Pi) or use a SPI to USB device, like the one
+Alphasense provides, using the
+<a class="reference external" href="https://github.com/dancingquanta/pyusbiss">pyusbiss</a> library.</p>
+</section>
+</section>
+<section id="examples">
+<h1>Examples<a class="headerlink" href="#examples" title="Permalink to this headline"></a></h1>
+<section id="opening-a-spi-channel">
+<h2>Opening a SPI channel<a class="headerlink" href="#opening-a-spi-channel" title="Permalink to this headline"></a></h2>
+<p>You first need a SPI interface. This can be either a direct one,
+e.g. from the MISO/MOSI headers in a RaspberryPi, or you can use a SPI
+to USB converters like the ones provided by Alphasense.</p>
+<p>You can open a direct SPI connection with <a class="reference external" href="https://github.com/doceme/py-spidev">spidev</a>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">spidev</span>
+
+<span class="n">spi</span> <span class="o">=</span> <span class="n">spidev</span><span class="o">.</span><span class="n">SpiDev</span><span class="p">()</span>
+<span class="n">spi</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+<span class="n">spi</span><span class="o">.</span><span class="n">mode</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="n">spi</span><span class="o">.</span><span class="n">max_speed_hz</span> <span class="o">=</span> <span class="mi">500000</span>
+<span class="n">spi</span><span class="o">.</span><span class="n">lsbfirst</span> <span class="o">=</span> <span class="kc">False</span>
+</pre></div>
+</div>
+<p>Or you can use <a class="reference external" href="https://github.com/dancingquanta/pyusbiss">pyusbiss</a> if you have a SPI to USB converter:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">usbiss.spi</span> <span class="kn">import</span> <span class="n">SPI</span>
+
+<span class="n">spi</span> <span class="o">=</span> <span class="n">SPI</span><span class="p">(</span><span class="s1">&#39;/dev/ttyACM0&#39;</span><span class="p">)</span>
+<span class="n">spi</span><span class="o">.</span><span class="n">mode</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="n">spi</span><span class="o">.</span><span class="n">max_speed_hz</span> <span class="o">=</span> <span class="mi">500000</span>
+<span class="n">spi</span><span class="o">.</span><span class="n">lsbfirst</span> <span class="o">=</span> <span class="kc">False</span>
+</pre></div>
+</div>
+</section>
+<section id="reading-pm-data">
+<h2>Reading PM data<a class="headerlink" href="#reading-pm-data" title="Permalink to this headline"></a></h2>
+<p>Basic steps to operate the device and read some measurement:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">time</span> <span class="kn">import</span> <span class="n">sleep</span>
+<span class="kn">import</span> <span class="nn">opcng</span> <span class="k">as</span> <span class="nn">opc</span>
+
+<span class="c1"># autodetect device</span>
+<span class="n">dev</span> <span class="o">=</span> <span class="n">opc</span><span class="o">.</span><span class="n">detect</span><span class="p">(</span><span class="n">spi</span><span class="p">)</span>
+
+<span class="c1"># power on fan and laser</span>
+<span class="n">dev</span><span class="o">.</span><span class="n">on</span><span class="p">()</span>
+
+<span class="n">sleep</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">):</span>
+    <span class="c1"># query particle mass readings</span>
+    <span class="n">pm</span> <span class="o">=</span> <span class="n">dev</span><span class="o">.</span><span class="n">pm</span><span class="p">()</span>
+
+    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">pm</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s1">: </span><span class="si">{</span><span class="n">v</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+    <span class="n">sleep</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+<span class="c1"># power off fan and laser</span>
+<span class="n">dev</span><span class="o">.</span><span class="n">off</span><span class="p">()</span>
+</pre></div>
+</div>
+</section>
+<section id="querying-device-information">
+<h2>Querying device information<a class="headerlink" href="#querying-device-information" title="Permalink to this headline"></a></h2>
+<p>Here’s an example session where we read both metadata and histogram
+data from one of our OPC-N3:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">opcng</span> <span class="k">as</span> <span class="nn">opc</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">dev</span> <span class="o">=</span> <span class="n">opc</span><span class="o">.</span><span class="n">OPCN3</span><span class="p">(</span><span class="n">spi</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">dev</span><span class="o">.</span><span class="n">info</span><span class="p">()</span>        <span class="c1"># query information string</span>
+<span class="go">&#39;OPC-N3 Iss1.1 FirmwareVer=1.17a...........................BS&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">dev</span><span class="o">.</span><span class="n">fwversion</span><span class="p">()</span>   <span class="c1"># firmware version</span>
+<span class="go">(1, 17)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">dev</span><span class="o">.</span><span class="n">serial</span><span class="p">()</span>      <span class="c1"># serial number</span>
+<span class="go">&#39;OPC-N3 177700019                                            &#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">dev</span><span class="o">.</span><span class="n">power_state</span><span class="p">()</span> <span class="c1"># power state (only available for N2 and N3)</span>
+<span class="go">{ &#39;FanON&#39;: 0,</span>
+<span class="go">  &#39;LaserON&#39;: 1,</span>
+<span class="go">  &#39;FanDACVal&#39;: 255,</span>
+<span class="go">  &#39;LaserDACVal&#39;: 140,</span>
+<span class="go">  &#39;LaserSwitch&#39;: 0,</span>
+<span class="go">  &#39;GainToggle&#39;: 3 }</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">dev</span><span class="o">.</span><span class="n">on</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">dev</span><span class="o">.</span><span class="n">power_state</span><span class="p">()</span> <span class="c1"># power state after turning it on</span>
+<span class="go">{ &#39;FanON&#39;: 1,</span>
+<span class="go">  &#39;LaserON&#39;: 1,</span>
+<span class="go">  &#39;FanDACVal&#39;: 255,</span>
+<span class="go">  &#39;LaserDACVal&#39;: 140,</span>
+<span class="go">  &#39;LaserSwitch&#39;: 1,</span>
+<span class="go">  &#39;GainToggle&#39;: 3 }</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">dev</span><span class="o">.</span><span class="n">histogram</span><span class="p">()</span>   <span class="c1"># full histogram data</span>
+<span class="go">{ &#39;Bin 0&#39;: 1.883357398455647,</span>
+<span class="go">  &#39;Bin 1&#39;: 0.4185238663234771,</span>
+<span class="go">  &#39;Bin 2&#39;: 0.20926193316173855,</span>
+<span class="go">  &#39;Bin 3&#39;: 0.0,</span>
+<span class="go">  &#39;Bin 4&#39;: 0.0,</span>
+<span class="go">  &#39;Bin 5&#39;: 0.20926193316173855,</span>
+<span class="go">  &#39;Bin 6&#39;: 0.0,</span>
+<span class="go">  &#39;Bin 7&#39;: 0.0,</span>
+<span class="go">  &#39;Bin 8&#39;: 0.0,</span>
+<span class="go">  &#39;Bin 9&#39;: 0.0,</span>
+<span class="go">  &#39;Bin 10&#39;: 0.0,</span>
+<span class="go">  &#39;Bin 11&#39;: 0.0,</span>
+<span class="go">  &#39;Bin 12&#39;: 0.0,</span>
+<span class="go">  &#39;Bin 13&#39;: 0.0,</span>
+<span class="go">  &#39;Bin 14&#39;: 0.0,</span>
+<span class="go">  &#39;Bin 15&#39;: 0.0,</span>
+<span class="go">  &#39;Bin 16&#39;: 0.0,</span>
+<span class="go">  &#39;Bin 17&#39;: 0.0,</span>
+<span class="go">  &#39;Bin 18&#39;: 0.0,</span>
+<span class="go">  &#39;Bin 19&#39;: 0.0,</span>
+<span class="go">  &#39;Bin 20&#39;: 0.0,</span>
+<span class="go">  &#39;Bin 21&#39;: 0.0,</span>
+<span class="go">  &#39;Bin 22&#39;: 0.0,</span>
+<span class="go">  &#39;Bin 23&#39;: 0.0,</span>
+<span class="go">  &#39;Bin1 MToF&#39;: 5.0,</span>
+<span class="go">  &#39;Bin3 MToF&#39;: 0.0,</span>
+<span class="go">  &#39;Bin5 MToF&#39;: 10.666666666666666,</span>
+<span class="go">  &#39;Bin7 MToF&#39;: 0.0,</span>
+<span class="go">  &#39;Sampling Period&#39;: 0.51,</span>
+<span class="go">  &#39;SFR&#39;: 9.37,</span>
+<span class="go">  &#39;Temperature&#39;: 31.22453650720989,</span>
+<span class="go">  &#39;Relative humidity&#39;: 40.822461280231934,</span>
+<span class="go">  &#39;PM1&#39;: 0.29056867957115173,</span>
+<span class="go">  &#39;PM2.5&#39;: 1.235719919204712,</span>
+<span class="go">  &#39;PM10&#39;: 1.6337664127349854,</span>
+<span class="go">  &#39;#RejectGlitch&#39;: 9,</span>
+<span class="go">  &#39;#RejectLongTOF&#39;: 0,</span>
+<span class="go">  &#39;#RejectRatio&#39;: 2335,</span>
+<span class="go">  &#39;#RejectOutOfRange&#39;: 3,</span>
+<span class="go">  &#39;Fan rev count&#39;: 0,</span>
+<span class="go">  &#39;Laser status&#39;: 613,</span>
+<span class="go">  &#39;Checksum&#39;: 35040 }</span>
+</pre></div>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="Indices and tables" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="modules.html" class="btn btn-neutral float-right" title="py-opc-ng package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, Filippo Argiolas.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
