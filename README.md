@@ -39,7 +39,7 @@ spi.lsbfirst = False
 dev = opc.detect(spi)
 
 print(f'device information: {dev.info()}')
-print(f'serial: {dev.serial()})
+print(f'serial: {dev.serial()}')
 print(f'firmware version: {dev.serial()}')
 
 # power on fan and laser
