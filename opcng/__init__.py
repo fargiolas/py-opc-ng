@@ -299,7 +299,7 @@ class _OPC(object):
 
         result = bytearray(buf)
         if len(result) < sz:
-            logger.error('Something failed while reading byte sequence, expected size: {}, received: {}'.format(sz, len(l)))
+            logger.error('Something failed while reading byte sequence, expected size: {}, received: {}'.format(sz, len(result)))
 
         return result
 
