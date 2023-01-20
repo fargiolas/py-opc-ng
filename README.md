@@ -86,7 +86,7 @@ dev.off()
 
 ## Known issues
 
-OPC N2 and N3 have a so-called /autonomous mode/ where the device
+OPC N2 and N3 have a so-called *autonomous mode* where the device
 operates on its own saving data in the included sd-card. When you
 power on the devices and don't do anything for some time (about 65s
 for N3) the automatically enter this standalone mode and start
