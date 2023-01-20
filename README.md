@@ -84,6 +84,40 @@ for i in range(10):
 dev.off()
 ```
 
+## Known issues
+
+OPC N2 and N3 have a so-called /autonomous mode/ where the device
+operates on its own saving data in the included sd-card. When you
+power on the devices and don't do anything for some time (about 65s
+for N3) the automatically enter this standalone mode and start
+acquiring data. See e.g. Chapter 9 in OPC N3 manual.
+
+When this happens the device still listens for SPI commands but
+sometimes (most of the time?) fails to respond and behaves erratically.
+
+When you try to access the device while in this mode you may get
+errors like:
+
+```
+>>> opc.detect()
+ERROR:opcng:Error while reading bytes from the device: Received unexpected response 0x00 for command: 0x3F
+ERROR:opcng:Something failed while reading byte sequence, expected size: 60, received: 0
+ERROR:opcng:Could not detect a valid OPC device
+```
+
+I don't have a solution yet, see discussion in issue #1. The solution
+is do not let the device enter this mode. As soon as you power up your
+host or connect the OPC send some SPI command to prevent this
+autonomous mode. If it enters it before you have the chance to
+interact with it the best way out is to power cycle the device or
+reboot the host.
+
+Not much of an issue as these are devices that should be operated
+continously so you should start them as soon as you boot your host.
+
+Nonetheless, if you know a way to disable this mode please do let me
+know.
+
 ## A note about the name
 
 When this project was started the most popular library to operate
