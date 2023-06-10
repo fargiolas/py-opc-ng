@@ -27,6 +27,7 @@ _OPC_CMD_READ_FW_VERSION     = 0x12
 _OPC_CMD_READ_HISTOGRAM      = 0x30
 _OPC_CMD_READ_PM             = 0x32
 _OPC_CMD_READ_CONFIG         = 0x3C
+_OPC_CMD_WRITE_CONFIG        = 0x3A
 _OPC_CMD_CHECK_STATUS        = 0xCF
 _OPC_CMD_RESET               = 0x06
 # OPC-N3 peripheral power status "OptionByte" flags. See 072-0503.
@@ -205,6 +206,10 @@ class _data_model(object):
         self.fmt = '<' + ''.join([fmt for field, fmt in self.model])
         self.size = struct.calcsize(self.fmt)
 
+    def pack(self, values):
+        raw_bytes = struct.pack(self.fmt, *values)
+        return raw_bytes
+
     def unpack(self, raw_bytes):
         assert(len(raw_bytes) == self.size)
 
@@ -319,6 +324,16 @@ class _OPC(object):
             logger.error("USB-SPI communication error: {}".format(e))
             logger.warning("Waiting 5 seconds for the device to settle")
             sleep(5)
+
+    def _write_struct(self, cmd, model, data):
+        """Write a complex data structure using provided data model
+        and a list of values
+
+        :param cmd: command opcode
+        :param data: list of values to write
+        """
+        raw_bytes = model.pack(data)
+        self._write_bytes(cmd, raw_bytes)
 
     def _read_struct(self, cmd, model):
         """Read a complex data structure (e.g. an histogram) from the
@@ -444,6 +459,39 @@ class _OPC(object):
         """
         return self._read_struct(_OPC_CMD_READ_PM, self._pm_model)
 
+    def _read_config(self):
+        """Query configuration variables."""
+        if not hasattr(self, '_config_model'):
+            logger.warning("read_config not supported for {}".format(type(self)))
+            return None
+
+        return self._read_struct(_OPC_CMD_READ_CONFIG, self._config_model)
+
+    def _update_config(self, update_dict):
+        """Update configuration variables."""
+        if not hasattr(self, '_config_model'):
+            logger.warning("update_config not supported for {}".format(type(self)))
+            return
+
+        config_dict = self.read_config()
+
+        config_dict.update(update_dict)
+        # dictionary order can't be trusted, force values to the same
+        # order as data model
+        values = [config_dict[k] for k in self._config_model.fields]
+        self._write_struct(_OPC_CMD_WRITE_CONFIG,
+                           self._config_model, values)
+
+        # it seems the device goes unresponsive for a while and
+        # returns bogus data right after writing configuration
+        # variables. It probably triggers some kind of internal reset
+        # and needs time to become ready again. I don't think this is
+        # documented by Alphasense
+        sleep(1)
+        while not self.ping():
+            sleep(1)
+
+
 
 class OPCN3(_OPC):
     """OPC-N3
@@ -523,6 +571,14 @@ class OPCN3(_OPC):
         """
         self._send_command_and_wait(_OPC_CMD_RESET)
 
+    def read_config(self):
+        """Query configuration variables."""
+        return self._read_config()
+
+    def update_config(self, update_dict):
+        """Update configuration variables."""
+        return self._update_config()
+
     def _histogram_post_process(self, hist):
         """Convert histogram raw data into proper measurements."""
         hist['Temperature'] = self._convert_temperature(hist['Temperature'])
@@ -536,9 +592,6 @@ class OPCN3(_OPC):
 
         return hist
 
-    def config(self):
-        """Query configuration variables."""
-        return self._read_struct(_OPC_CMD_READ_CONFIG, self._config_model)
 
 
 class OPCR1(_OPC):
