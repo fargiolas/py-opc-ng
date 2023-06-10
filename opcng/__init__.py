@@ -572,11 +572,30 @@ class OPCN3(_OPC):
         self._send_command_and_wait(_OPC_CMD_RESET)
 
     def read_config(self):
-        """Query configuration variables."""
+        """Query configuration variables.
+
+        :returns: a dictionary of configuration variables as described
+        by Alphasense Supplemental SPI Information document.
+
+        """
         return self._read_config()
 
     def update_config(self, update_dict):
-        """Update configuration variables."""
+        """Update configuration variables.
+
+        Reads current configuration variables and update selected
+        key/value pairs. Configuration is not stored in non-volatile
+        memory so a power cycle will rset configuration to previously
+        stored state.
+
+        :param update_dict: a dictionary of configuration values to update
+        :Example:
+
+        # remap PM2.5 to PM4.5
+        >>> o = OPCN3(spi)
+        >>> o.update_config(({ 'M_B': 450 });)
+
+        """
         return self._update_config()
 
     def _histogram_post_process(self, hist):
