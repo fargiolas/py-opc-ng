@@ -177,22 +177,39 @@ _OPC_R1_PM_MODEL = _OPC_N3_PM_MODEL
 
 
 # Config variables
-_OPC_N3_CONFIG_MODEL =    [*[['BB{}'.format(b), t] for b, t in zip(range(25), ["H"] * 25)],
-                           *[['BBD{}'.format(b), t] for b, t in zip(range(25), ["H"] * 25)],
-                           *[['BW{}'.format(b), t] for b, t in zip(range(24), ["H"] * 24)],
-                           ['M_A',                'H'],
-                           ['M_B',                'H'],
-                           ['M_C',                'H'],
-                           ['MaxTOF',             'H'],
-                           ['AMSamplingIntervalCount', 'H'],
-                           ['AMIdleIntervalCount', 'H'],
-                           ['AMMaxDataArraysInFile', 'H'],
-                           ['AMOnlySavePMData',   'B'],
-                           ['AMFanOnInIdle',      'B'],
-                           ['AMLaserOnInIdle',    'B'],
-                           ['TOF to SFR factor',  'B'],
-                           ['PVP',                'B'],
-                           ['BinWeightingIndex',  'B']]
+_OPC_N3_READ_CONFIG_MODEL =    [*[['BB{}'.format(b), t] for b, t in zip(range(25), ["H"] * 25)],
+                                *[['BBD{}'.format(b), t] for b, t in zip(range(25), ["H"] * 25)],
+                                *[['BW{}'.format(b), t] for b, t in zip(range(24), ["H"] * 24)],
+                                ['M_A',                'H'],
+                                ['M_B',                'H'],
+                                ['M_C',                'H'],
+                                ['MaxTOF',             'H'],
+                                ['AMSamplingIntervalCount', 'H'],
+                                ['AMIdleIntervalCount', 'H'],
+                                ['AMMaxDataArraysInFile', 'H'],
+                                ['AMOnlySavePMData',   'B'],
+                                ['AMFanOnInIdle',      'B'],
+                                ['AMLaserOnInIdle',    'B'],
+                                ['TOF to SFR factor',  'B'],
+                                ['PVP',                'B'],
+                                ['BinWeightingIndex',  'B']]
+
+_OPC_N3_WRITE_CONFIG_MODEL =    [*[['BB{}'.format(b), t] for b, t in zip(range(25), ["H"] * 25)],
+                                 *[['BBD{}'.format(b), t] for b, t in zip(range(25), ["H"] * 25)],
+                                 *[['BW{}'.format(b), t] for b, t in zip(range(24), ["H"] * 24)],
+                                 ['M_A',                'H'],
+                                 ['M_B',                'H'],
+                                 ['M_C',                'H'],
+                                 ['MaxTOF',             'H'],
+                                 ['AMSamplingIntervalCount', 'H'],
+                                 ['AMIdleIntervalCount', 'H'],
+                                 ['AMMaxDataArraysInFile', 'H'],
+                                 ['AMOnlySavePMData',   'B'],
+                                 ['AMFanOnInIdle',      'B'],
+                                 ['AMLaserOnInIdle',    'B'],
+                                 ['TOF to SFR factor',  'B'],
+                                 ['PVP',                'B']]
+
 
 
 class _data_model(object):
@@ -459,28 +476,61 @@ class _OPC(object):
         """
         return self._read_struct(_OPC_CMD_READ_PM, self._pm_model)
 
-    def _read_config(self):
-        """Query configuration variables."""
-        if not hasattr(self, '_config_model'):
+    def read_config(self):
+        """Query configuration variables.
+
+        :returns: a dictionary of configuration variables as described
+        by Alphasense Supplemental SPI Information document.
+
+        """
+        if not hasattr(self, '_read_config_model'):
             logger.warning("read_config not supported for {}".format(type(self)))
             return None
 
-        return self._read_struct(_OPC_CMD_READ_CONFIG, self._config_model)
+        return self._read_struct(_OPC_CMD_READ_CONFIG, self._read_config_model)
 
-    def _update_config(self, update_dict):
-        """Update configuration variables."""
-        if not hasattr(self, '_config_model'):
+    def update_config(self, update_dict):
+        """Update configuration variables.
+
+        Reads current configuration variables and update selected
+        key/value pairs. Configuration is not stored in non-volatile
+        memory so a power cycle will rset configuration to previously
+        stored state.
+
+        :param update_dict: a dictionary of configuration values to update
+        :Example:
+
+        # remap PM2.5 to PM4.5 on OPCN3
+        >>> o = OPCN3(spi)
+        >>> o.update_config(({ 'M_B': 450 });)
+
+        """
+        if not hasattr(self, '_write_config_model'):
             logger.warning("update_config not supported for {}".format(type(self)))
             return
 
         config_dict = self.read_config()
 
+        # AlphaSense doc is a bit ugly here, it seems not all
+        # variables that we can read can also be written. Hence the
+        # need for two different data models.
+        config_dict = {k: v for k, v in config_dict.items()
+                       if k in self._write_config_model.fields}
+
+        invalid_keys = set(update_dict.keys()) - set(self._write_config_model.fields)
+        if (len(invalid_keys) > 0):
+            logger.warning("Some config variables are not writeable and will be ignored: {}"
+                           .format(list(invalid_keys)))
+
+        update_dict = {k: v for k, v in update_dict.items()
+                       if k in self._write_config_model.fields}
+
         config_dict.update(update_dict)
         # dictionary order can't be trusted, force values to the same
         # order as data model
-        values = [config_dict[k] for k in self._config_model.fields]
+        values = [config_dict[k] for k in self._write_config_model.fields]
         self._write_struct(_OPC_CMD_WRITE_CONFIG,
-                           self._config_model, values)
+                           self._write_config_model, values)
 
         # it seems the device goes unresponsive for a while and
         # returns bogus data right after writing configuration
@@ -504,7 +554,8 @@ class OPCN3(_OPC):
         self._histogram_model = _data_model(_OPC_N3_HISTOGRAM_MODEL)
         self._popt_model = _data_model(_OPC_N3_POPT_MODEL)
         self._pm_model = _data_model(_OPC_N3_PM_MODEL)
-        self._config_model = _data_model(_OPC_N3_CONFIG_MODEL)
+        self._read_config_model = _data_model(_OPC_N3_READ_CONFIG_MODEL)
+        self._write_config_model = _data_model(_OPC_N3_WRITE_CONFIG_MODEL)
 
     def power_state(self):
         """Report peripherals and digital pots state.
@@ -570,33 +621,6 @@ class OPCN3(_OPC):
 
         """
         self._send_command_and_wait(_OPC_CMD_RESET)
-
-    def read_config(self):
-        """Query configuration variables.
-
-        :returns: a dictionary of configuration variables as described
-        by Alphasense Supplemental SPI Information document.
-
-        """
-        return self._read_config()
-
-    def update_config(self, update_dict):
-        """Update configuration variables.
-
-        Reads current configuration variables and update selected
-        key/value pairs. Configuration is not stored in non-volatile
-        memory so a power cycle will rset configuration to previously
-        stored state.
-
-        :param update_dict: a dictionary of configuration values to update
-        :Example:
-
-        # remap PM2.5 to PM4.5
-        >>> o = OPCN3(spi)
-        >>> o.update_config(({ 'M_B': 450 });)
-
-        """
-        return self._update_config()
 
     def _histogram_post_process(self, hist):
         """Convert histogram raw data into proper measurements."""
