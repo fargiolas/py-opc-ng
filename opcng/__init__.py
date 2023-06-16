@@ -211,6 +211,32 @@ _OPC_N3_WRITE_CONFIG_MODEL =    [*[['BB{}'.format(b), t] for b, t in zip(range(2
                                  ['PVP',                'B']]
 
 
+OPC_R1_READ_CONFIG_MODEL =    [*[['BB{}'.format(b), t] for b, t in zip(range(17), ["H"] * 17)],
+                               *[['BBD{}'.format(b), t] for b, t in zip(range(17), ["f"] * 17)],
+                               *[['BW{}'.format(b), t] for b, t in zip(range(16), ["f"] * 16)],
+                               ['GSC'                 'f'],
+                               ['SFR'                 'f'],
+                               ['TOF to SFR factor',  'B'],
+                               ['M_A',                'f'],
+                               ['M_B',                'f'],
+                               ['M_C',                'f'],
+                               ['PVP',                'B'],
+                               ['PowerStatus'         'B'],
+                               ['MaxTOF',             'H'],
+                               ['LaserDAC'            'B'],
+                               ['BinWeightingIndex',  'B']]
+
+OPC_R1_WRITE_CONFIG_MODEL =    [*[['BB{}'.format(b), t] for b, t in zip(range(17), ["H"] * 17)],
+                                *[['BBD{}'.format(b), t] for b, t in zip(range(17), ["f"] * 17)],
+                                *[['BW{}'.format(b), t] for b, t in zip(range(16), ["f"] * 16)],
+                                ['GSC'                 'f'],
+                                ['M_A',                'f'],
+                                ['M_B',                'f'],
+                                ['M_C',                'f'],
+                                ['TOF to SFR factor',  'B'],
+                                ['PVP',                'B'],
+                                ['MaxTOF',             'H']]
+
 
 class _data_model(object):
     """Helper class to manage a data sequence to be read or written
